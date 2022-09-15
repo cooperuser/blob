@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-specs = { version = "0.18.0", features = ["specs-derive"] }
+specs = { version = "0.18.0", features = ["specs-derive", "shred-derive"] }

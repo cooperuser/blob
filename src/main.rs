@@ -7,6 +7,9 @@ use specs::{World, WorldExt, Builder};
 use specs::{System, ReadStorage, Join};
 use specs::DispatcherBuilder;
 
+#[derive(Default)]
+pub struct DeltaTime(f32);
+
 struct DebugLog;
 impl<'a> System<'a> for DebugLog {
     type SystemData = ReadStorage<'a, Position>;
@@ -23,11 +26,12 @@ fn main() {
     world.register::<Position>();
     world.register::<Force>();
     world.register::<Mass>();
+    world.insert(DeltaTime(0.05));
 
     world.create_entity()
         .with(Position { now: Vector::zero(), last: Vector::zero() })
         .with(Force { vector: Vector::new(1.0, 0.0), magnitude: 1.0 })
-        .with(Mass { mass: 1.0 })
+        .with(Mass(1.0))
         .build();
 
     let mut dispatcher = DispatcherBuilder::new()
@@ -35,5 +39,8 @@ fn main() {
         .with(DebugLog, "debug_log", &["verlet_integration"])
         .build();
 
-    dispatcher.dispatch(&mut world);
+    for _ in 0..20 {
+        dispatcher.dispatch(&mut world);
+    }
+    world.maintain();
 }

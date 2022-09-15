@@ -1,6 +1,7 @@
+use crate::DeltaTime;
 use crate::vector::Vector;
-use specs::{Component, VecStorage, WriteStorage};
-use specs::{System, ReadStorage, Join};
+use specs::{Component, VecStorage};
+use specs::{System, ReadStorage, WriteStorage, Read, Join};
 
 #[derive(Component, Debug)]
 #[storage(VecStorage)]
@@ -18,19 +19,24 @@ pub struct Force {
 
 #[derive(Component, Debug)]
 #[storage(VecStorage)]
-pub struct Mass {
-    pub mass: f32,
-}
+pub struct Mass(pub(crate) f32);
 
 pub struct VerletIntegration;
 impl<'a> System<'a> for VerletIntegration {
-    type SystemData = (ReadStorage<'a, Mass>, ReadStorage<'a, Force>, WriteStorage<'a, Position>);
+    type SystemData = (
+        Read<'a, DeltaTime>,
+        ReadStorage<'a, Mass>,
+        ReadStorage<'a, Force>,
+        WriteStorage<'a, Position>
+    );
 
-    fn run(&mut self, (mass, force, mut pos): Self::SystemData) {
+    fn run(&mut self, data: Self::SystemData) {
+        let (dt, mass, force, mut pos) = data;
+        let dt = dt.0;
+
         for (mass, force, pos) in (&mass, &force, &mut pos).join() {
             let last = pos.now;
-            let dt = 0.05;
-            let a = force.vector * force.magnitude / mass.mass * dt * dt;
+            let a = force.vector * force.magnitude / mass.0 * dt * dt;
             pos.now += pos.now - pos.last + a;
             pos.last = last;
         }
