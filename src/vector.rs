@@ -10,6 +10,8 @@ pub struct Vector {
 impl Vector {
     pub fn new(x: f32, y: f32) -> Self { Self { x, y } }
     pub fn zero() -> Self { Self { x: 0.0, y: 0.0 } }
+    pub fn sqr_magnitude(&self) -> f32 { self.x * self.x + self.y * self.y }
+    pub fn magnitude(&self) -> f32 { self.sqr_magnitude().sqrt() }
 }
 
 impl Add for Vector {

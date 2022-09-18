@@ -2,7 +2,7 @@ mod vector;
 mod physics;
 
 use vector::Vector;
-use physics::{Position, Force, Mass, VerletIntegration};
+use physics::{Position, Force, Mass, VerletIntegration, Spring, SpringMassSystem, ForceInitializer};
 use specs::{World, WorldExt, Builder};
 use specs::{System, ReadStorage, Join};
 use specs::DispatcherBuilder;
@@ -18,6 +18,7 @@ impl<'a> System<'a> for DebugLog {
         for position in data.join() {
             println!("{:?}", &position.now);
         }
+        println!("");
     }
 }
 
@@ -26,16 +27,29 @@ fn main() {
     world.register::<Position>();
     world.register::<Force>();
     world.register::<Mass>();
+    world.register::<Spring>();
     world.insert(DeltaTime(0.05));
 
-    world.create_entity()
-        .with(Position { now: Vector::zero(), last: Vector::zero() })
-        .with(Force { vector: Vector::new(1.0, 0.0), magnitude: 1.0 })
+    let a = world.create_entity()
+        .with(Position::new(Vector::new(-0.5, 0.0)))
+        .with(Force(Vector::zero()))
         .with(Mass(1.0))
         .build();
 
+    let b = world.create_entity()
+        .with(Position::new(Vector::new(0.5, 0.0)))
+        .with(Force(Vector::zero()))
+        .with(Mass(1.0))
+        .build();
+
+    let _s1 = world.create_entity()
+        .with(Spring { a, b, constant: 10.0, length: 2.0 })
+        .build();
+
     let mut dispatcher = DispatcherBuilder::new()
-        .with(VerletIntegration, "verlet_integration", &[])
+        .with(ForceInitializer, "force_initializer", &[])
+        .with(SpringMassSystem, "spring_mass_system", &["force_initializer"])
+        .with(VerletIntegration, "verlet_integration", &["spring_mass_system"])
         .with(DebugLog, "debug_log", &["verlet_integration"])
         .build();
 
