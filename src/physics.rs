@@ -7,19 +7,15 @@ use specs::{System, ReadStorage, WriteStorage, Read, Join};
 #[storage(NullStorage)]
 pub struct Locked;
 
-#[derive(Component, Debug)]
+#[derive(Component, Default, Debug)]
 #[storage(VecStorage)]
 pub struct Position {
     pub now: Vector,
     pub last: Vector,
 }
+
 impl Position {
-    pub fn new(pos: Vector) -> Self {
-        Self { now: pos, last: pos }
-    }
-    pub fn default() -> Self {
-        Self::new(Vector::zero())
-    }
+    pub fn new(pos: Vector) -> Self { Self { now: pos, last: pos } }
 }
 
 #[derive(Component, Debug)]

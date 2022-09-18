@@ -36,7 +36,7 @@ fn main() {
     world.insert(DeltaTime(0.05));
 
     let a = world.create_entity()
-        .with(Position::new(Vector::default()))
+        .with(Position::default())
         .with(Force(Vector::default()))
         .with(Mass(1.0))
         .build();
