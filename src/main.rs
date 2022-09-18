@@ -2,28 +2,33 @@ mod vector;
 mod physics;
 
 use vector::Vector;
-use physics::{Position, Force, Mass, VerletIntegration, Spring, SpringMassSystem, ForceInitializer};
-use specs::{World, WorldExt, Builder};
+use physics::{Position, Force, Mass, VerletIntegration, Spring, SpringMassSystem, ForceInitializer, Locked};
+use specs::{World, WorldExt, Builder, Component, NullStorage};
 use specs::{System, ReadStorage, Join};
 use specs::DispatcherBuilder;
 
 #[derive(Default)]
 pub struct DeltaTime(f32);
 
+#[derive(Component, Default)]
+#[storage(NullStorage)]
+pub struct Log;
+
 struct DebugLog;
 impl<'a> System<'a> for DebugLog {
-    type SystemData = ReadStorage<'a, Position>;
+    type SystemData = (ReadStorage<'a, Log>, ReadStorage<'a, Position>);
 
-    fn run(&mut self, data: Self::SystemData) {
-        for position in data.join() {
+    fn run(&mut self, (log, positions): Self::SystemData) {
+        for (position, _) in (&positions, &log).join() {
             println!("{:?}", &position.now);
         }
-        println!("");
     }
 }
 
 fn main() {
     let mut world = World::new();
+    world.register::<Locked>();
+    world.register::<Log>();
     world.register::<Position>();
     world.register::<Force>();
     world.register::<Mass>();
@@ -31,15 +36,16 @@ fn main() {
     world.insert(DeltaTime(0.05));
 
     let a = world.create_entity()
-        .with(Position::new(Vector::new(-0.5, 0.0)))
-        .with(Force(Vector::zero()))
+        .with(Position::new(Vector::default()))
+        .with(Force(Vector::default()))
         .with(Mass(1.0))
         .build();
 
     let b = world.create_entity()
-        .with(Position::new(Vector::new(0.5, 0.0)))
+        .with(Position::new(Vector::new(1.0, 0.0)))
         .with(Force(Vector::zero()))
         .with(Mass(1.0))
+        .with(Log)
         .build();
 
     let _s1 = world.create_entity()
