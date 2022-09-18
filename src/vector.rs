@@ -14,6 +14,10 @@ impl Vector {
     pub fn magnitude(&self) -> f32 { self.sqr_magnitude().sqrt() }
 }
 
+impl Default for Vector {
+    fn default() -> Self { Self::zero() }
+}
+
 impl Add for Vector {
     type Output = Self;
 
