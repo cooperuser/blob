@@ -18,7 +18,7 @@ impl Position {
     pub fn new(pos: Vector) -> Self { Self { now: pos, last: pos } }
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Default)]
 #[storage(VecStorage)]
 pub struct Force(pub(crate) Vector);
 
