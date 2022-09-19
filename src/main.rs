@@ -1,5 +1,6 @@
 mod vector;
 mod physics;
+mod worm;
 
 use vector::Vector;
 use physics::{Position, Force, Mass, VerletIntegration, Spring, SpringMassSystem, ForceInitializer, Locked};
@@ -35,22 +36,7 @@ fn main() {
     world.register::<Spring>();
     world.insert(DeltaTime(0.05));
 
-    let a = world.create_entity()
-        .with(Position::default())
-        .with(Force(Vector::default()))
-        .with(Mass(1.0))
-        .build();
-
-    let b = world.create_entity()
-        .with(Position::new(Vector::new(1.0, 0.0)))
-        .with(Force(Vector::zero()))
-        .with(Mass(1.0))
-        .with(Log)
-        .build();
-
-    let _s1 = world.create_entity()
-        .with(Spring { a, b, constant: 10.0, length: 2.0 })
-        .build();
+    worm::builder(&mut world, 3);
 
     let mut dispatcher = DispatcherBuilder::new()
         .with(ForceInitializer, "force_initializer", &[])
