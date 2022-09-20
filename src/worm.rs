@@ -26,16 +26,19 @@ pub fn builder(world: &mut World, num_segments: i32) {
                 .with(Position::new(seg.center))
                 .with(Force::default())
                 .with(Mass(1.0))
+                .with(Log)
                 .build(),
             left: world.create_entity()
                 .with(Position::new(seg.left))
                 .with(Force::default())
                 .with(Mass(1.0))
+                .with(Log)
                 .build(),
             right: world.create_entity()
                 .with(Position::new(seg.right))
                 .with(Force::default())
                 .with(Mass(1.0))
+                .with(Log)
                 .build(),
         }).collect();
 

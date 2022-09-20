@@ -2,9 +2,8 @@ mod vector;
 mod physics;
 mod worm;
 
-use vector::Vector;
 use physics::{Position, Force, Mass, VerletIntegration, Spring, SpringMassSystem, ForceInitializer, Locked};
-use specs::{World, WorldExt, Builder, Component, NullStorage};
+use specs::{World, WorldExt, Component, NullStorage};
 use specs::{System, ReadStorage, Join};
 use specs::DispatcherBuilder;
 
@@ -45,8 +44,11 @@ fn main() {
         .with(DebugLog, "debug_log", &["verlet_integration"])
         .build();
 
-    for _ in 0..20 {
+    let stdin = std::io::stdin();
+    for _line in stdin.lines() {
         dispatcher.dispatch(&mut world);
     }
+
+    println!("[exited]");
     world.maintain();
 }
