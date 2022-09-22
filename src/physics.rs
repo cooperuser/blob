@@ -35,6 +35,14 @@ pub struct Spring {
 #[storage(VecStorage)]
 pub struct Mass(pub(crate) f32);
 
+#[derive(Component, Debug)]
+#[storage(VecStorage)]
+pub struct Drag(pub(crate) f32);
+
+impl Default for Drag {
+    fn default() -> Self { Self(2000.0) }
+}
+
 pub struct ForceInitializer;
 impl<'a> System<'a> for ForceInitializer {
     type SystemData = WriteStorage<'a, Force>;
@@ -71,6 +79,27 @@ impl<'a> System<'a> for SpringMassSystem {
             force_a.0 -= diff * f;
             let force_b = forces.get_mut(spring.b).unwrap();
             force_b.0 += diff * f;
+        }
+    }
+}
+
+pub struct PointDragSystem;
+impl<'a> System<'a> for PointDragSystem {
+    type SystemData = (
+        ReadStorage<'a, Position>,
+        ReadStorage<'a, Drag>,
+        WriteStorage<'a, Force>,
+    );
+
+    fn run(&mut self, data: Self::SystemData) {
+        let (positions, drags, mut forces) = data;
+        for (pos, drag, force) in (&positions, &drags, &mut forces).join() {
+            let v = pos.now - pos.last;
+            let v_sq = v.sqr_magnitude();
+            let density = 1.0;
+            let area = 1.0;
+            let f = drag.0 * density * area * v_sq;
+            force.0 -= v.normalized() * f;
         }
     }
 }

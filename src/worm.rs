@@ -2,7 +2,7 @@ use specs::{World, WorldExt, Builder, Entity};
 
 use crate::Log;
 use crate::vector::Vector;
-use crate::physics::{Position, Force, Mass, Spring};
+use crate::physics::{Position, Force, Mass, Spring, Drag};
 
 struct Segment<T> {
     center: T,
@@ -11,11 +11,14 @@ struct Segment<T> {
 }
 
 pub fn builder(world: &mut World, num_segments: i32) {
+    let s = 0.2;
+
     if num_segments < 1 { panic!("Not enough worm segments") }
 
     let head = world.create_entity()
         .with(Position::default())
         .with(Force::default())
+        .with(Drag::default())
         .with(Mass(1.0))
         .with(Log)
         .build();
@@ -23,20 +26,23 @@ pub fn builder(world: &mut World, num_segments: i32) {
     let entities: Vec<Segment<Entity>> = gen_segments(num_segments).iter()
         .map(|seg| Segment {
             center: world.create_entity()
-                .with(Position::new(seg.center))
+                .with(Position::new(seg.center * s))
                 .with(Force::default())
+                .with(Drag::default())
                 .with(Mass(1.0))
                 .with(Log)
                 .build(),
             left: world.create_entity()
-                .with(Position::new(seg.left))
+                .with(Position::new(seg.left * s))
                 .with(Force::default())
+                .with(Drag::default())
                 .with(Mass(1.0))
                 .with(Log)
                 .build(),
             right: world.create_entity()
-                .with(Position::new(seg.right))
+                .with(Position::new(seg.right * s))
                 .with(Force::default())
+                .with(Drag::default())
                 .with(Mass(1.0))
                 .with(Log)
                 .build(),
@@ -47,19 +53,19 @@ pub fn builder(world: &mut World, num_segments: i32) {
     let skeleton = 15.0;
 
     world.create_entity()
-        .with(Spring { a: entities[0].left, b: head, constant: soft, length: 1.0 })
+        .with(Spring { a: entities[0].left, b: head, constant: soft, length: 1.0 * s })
         .build();
     world.create_entity()
-        .with(Spring { a: entities[0].center, b: head, constant: skeleton, length: 1.0 })
+        .with(Spring { a: entities[0].center, b: head, constant: skeleton, length: 1.0 * s })
         .build();
     world.create_entity()
-        .with(Spring { a: entities[0].right, b: head, constant: soft, length: 1.0 })
+        .with(Spring { a: entities[0].right, b: head, constant: soft, length: 1.0 * s })
         .build();
     world.create_entity()
-        .with(Spring { a: entities[0].center, b: entities[0].left, constant: soft, length: 1.0 })
+        .with(Spring { a: entities[0].center, b: entities[0].left, constant: soft, length: 1.0 * s })
         .build();
     world.create_entity()
-        .with(Spring { a: entities[0].center, b: entities[0].right, constant: soft, length: 1.0 })
+        .with(Spring { a: entities[0].center, b: entities[0].right, constant: soft, length: 1.0 * s })
         .build();
 
     for i in 1..num_segments {
@@ -67,25 +73,25 @@ pub fn builder(world: &mut World, num_segments: i32) {
         let old = &entities[(i - 1) as usize];
 
         world.create_entity()
-            .with(Spring { a: new.center, b: old.center, constant: skeleton, length: 1.0 })
+            .with(Spring { a: new.center, b: old.center, constant: skeleton, length: 1.0 * s })
             .build();
         world.create_entity()
-            .with(Spring { a: new.center, b: old.left, constant: soft, length: 1.0 })
+            .with(Spring { a: new.center, b: new.left, constant: soft, length: 1.0 * s })
             .build();
         world.create_entity()
-            .with(Spring { a: new.center, b: old.right, constant: soft, length: 1.0 })
+            .with(Spring { a: new.center, b: new.right, constant: soft, length: 1.0 * s })
             .build();
         world.create_entity()
-            .with(Spring { a: new.left, b: old.center, constant: soft, length: 1.0 })
+            .with(Spring { a: new.left, b: old.center, constant: soft, length: 1.0 * s })
             .build();
         world.create_entity()
-            .with(Spring { a: new.right, b: old.center, constant: soft, length: 1.0 })
+            .with(Spring { a: new.right, b: old.center, constant: soft, length: 1.0 * s })
             .build();
         world.create_entity()
-            .with(Spring { a: new.left, b: old.left, constant: hard, length: 1.0 })
+            .with(Spring { a: new.left, b: old.left, constant: hard, length: 0.9 * s })
             .build();
         world.create_entity()
-            .with(Spring { a: new.right, b: old.right, constant: hard, length: 1.0 })
+            .with(Spring { a: new.right, b: old.right, constant: hard, length: 1.1 * s })
             .build();
     }
 }

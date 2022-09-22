@@ -12,6 +12,7 @@ impl Vector {
     pub fn zero() -> Self { Self { x: 0.0, y: 0.0 } }
     pub fn sqr_magnitude(&self) -> f32 { self.x * self.x + self.y * self.y }
     pub fn magnitude(&self) -> f32 { self.sqr_magnitude().sqrt() }
+    pub fn normalized(&self) -> Self { *self / self.magnitude() }
 }
 
 impl Default for Vector {
