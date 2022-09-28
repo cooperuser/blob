@@ -7,7 +7,7 @@ use specs::{World, WorldExt, Component, NullStorage};
 use specs::{System, ReadStorage, Join};
 use specs::DispatcherBuilder;
 
-use crate::physics::{Drag, PointDragSystem};
+use crate::physics::{Drag, PointDragSystem, Control, ControlSystem, LinearDragSystem};
 
 #[derive(Default)]
 pub struct DeltaTime(f32);
@@ -40,14 +40,17 @@ fn main() {
     world.register::<Mass>();
     world.register::<Spring>();
     world.register::<Drag>();
+    world.register::<Control>();
     world.insert(DeltaTime(0.05));
 
-    worm::builder(&mut world, 10);
+    worm::builder(&mut world, 5);
 
     let mut dispatcher = DispatcherBuilder::new()
+        .with(ControlSystem(0.0), "control_system", &[])
         .with(ForceInitializer, "force_initializer", &[])
         .with(SpringMassSystem, "spring_mass_system", &["force_initializer"])
         .with(PointDragSystem, "point_drag_system", &["force_initializer"])
+        .with(LinearDragSystem, "linear_drag_system", &["force_initializer"])
         .with(VerletIntegration, "verlet_integration", &["spring_mass_system", "point_drag_system"])
         .with(DebugLog(1), "debug_log", &["verlet_integration"])
         .build();

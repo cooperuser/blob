@@ -2,7 +2,7 @@ use specs::{World, WorldExt, Builder, Entity};
 
 use crate::Log;
 use crate::vector::Vector;
-use crate::physics::{Position, Force, Mass, Spring, Drag};
+use crate::physics::{Position, Force, Mass, Spring, Drag, Control};
 
 struct Segment<T> {
     center: T,
@@ -11,7 +11,7 @@ struct Segment<T> {
 }
 
 pub fn builder(world: &mut World, num_segments: i32) {
-    let s = 0.2;
+    let s = 0.5;
 
     if num_segments < 1 { panic!("Not enough worm segments") }
 
@@ -48,9 +48,9 @@ pub fn builder(world: &mut World, num_segments: i32) {
                 .build(),
         }).collect();
 
-    let soft = 5.0;
-    let hard = 10.0;
-    let skeleton = 15.0;
+    let soft = 1.5*5.0;
+    let hard = 0.5*10.0;
+    let skeleton = 0.5*15.0;
 
     world.create_entity()
         .with(Spring { a: entities[0].left, b: head, constant: soft, length: 1.0 * s })
@@ -88,10 +88,14 @@ pub fn builder(world: &mut World, num_segments: i32) {
             .with(Spring { a: new.right, b: old.center, constant: soft, length: 1.0 * s })
             .build();
         world.create_entity()
-            .with(Spring { a: new.left, b: old.left, constant: hard, length: 0.9 * s })
+            .with(Spring { a: new.left, b: old.left, constant: hard, length: 1.0 * s })
+            .with(Drag::default())
+            .with(Control { index: i, side: -1.0 })
             .build();
         world.create_entity()
-            .with(Spring { a: new.right, b: old.right, constant: hard, length: 1.1 * s })
+            .with(Spring { a: new.right, b: old.right, constant: hard, length: 1.0 * s })
+            .with(Drag::default())
+            .with(Control { index: i, side: 1.0 })
             .build();
     }
 }
