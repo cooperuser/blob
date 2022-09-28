@@ -3,8 +3,8 @@ use std::ops::{AddAssign, SubAssign, MulAssign, DivAssign};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vector {
-    x: f32,
-    y: f32,
+    pub x: f32,
+    pub y: f32,
 }
 
 impl Vector {
@@ -13,6 +13,7 @@ impl Vector {
     pub fn sqr_magnitude(&self) -> f32 { self.x * self.x + self.y * self.y }
     pub fn magnitude(&self) -> f32 { self.sqr_magnitude().sqrt() }
     pub fn normalized(&self) -> Self { *self / self.magnitude() }
+    pub fn dot(a: Self, b: Self) -> f32 { a.x * b.x + a.y * b.y }
 }
 
 impl Default for Vector {
