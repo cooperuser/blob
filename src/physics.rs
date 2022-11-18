@@ -182,7 +182,8 @@ impl<'a> System<'a> for ControlSystem {
 
         for (spring, control) in (&mut springs, &control).join() {
             let phase = control.index as f32 * PI / 6.0;
-            spring.length = 0.5 + (t + phase * control.side).sin() * 0.25;
+            let u = (t + phase * control.side).sin();
+            spring.length = 0.5 + u.signum() * 0.2;
         }
     }
 }

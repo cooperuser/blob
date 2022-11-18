@@ -74,6 +74,7 @@ pub fn builder(world: &mut World, num_segments: i32) {
 
         world.create_entity()
             .with(Spring { a: new.center, b: old.center, constant: skeleton, length: 1.0 * s })
+            .with(Drag::default())
             .build();
         world.create_entity()
             .with(Spring { a: new.center, b: new.left, constant: soft, length: 1.0 * s })
@@ -89,12 +90,12 @@ pub fn builder(world: &mut World, num_segments: i32) {
             .build();
         world.create_entity()
             .with(Spring { a: new.left, b: old.left, constant: hard, length: 1.0 * s })
-            .with(Drag::default())
+            // .with(Drag::default())
             .with(Control { index: i, side: -1.0 })
             .build();
         world.create_entity()
             .with(Spring { a: new.right, b: old.right, constant: hard, length: 1.0 * s })
-            .with(Drag::default())
+            // .with(Drag::default())
             .with(Control { index: i, side: 1.0 })
             .build();
     }
