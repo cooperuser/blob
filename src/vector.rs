@@ -1,5 +1,9 @@
+#![allow(dead_code)]
+
 use std::ops::{Add, Sub, Mul, Div};
 use std::ops::{AddAssign, SubAssign, MulAssign, DivAssign};
+
+use bevy::prelude::Vec3;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vector {
@@ -14,6 +18,7 @@ impl Vector {
     pub fn magnitude(&self) -> f32 { self.sqr_magnitude().sqrt() }
     pub fn normalized(&self) -> Self { *self / self.magnitude() }
     pub fn dot(a: Self, b: Self) -> f32 { a.x * b.x + a.y * b.y }
+    pub fn as_vec3(self, z: f32) -> Vec3 { Vec3::new(self.x, self.y, z) }
 }
 
 impl Default for Vector {

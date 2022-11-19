@@ -1,67 +1,80 @@
-mod vector;
+use bevy::prelude::*;
+use bevy::sprite::MaterialMesh2dBundle;
+use bevy_pancam::*;
+use bevy_prototype_debug_lines::*;
+
 mod physics;
+mod vector;
 mod worm;
+mod grid;
 
-use physics::{Position, Force, Mass, VerletIntegration, Spring, SpringMassSystem, ForceInitializer, Locked};
-use specs::{World, WorldExt, Component, NullStorage};
-use specs::{System, ReadStorage, Join};
-use specs::DispatcherBuilder;
+use grid::draw_grid;
+use physics::*;
 
-use crate::physics::{Drag, PointDragSystem, Control, ControlSystem, LinearDragSystem};
+#[derive(Component)]
+struct Log;
 
-#[derive(Default)]
-pub struct DeltaTime(f32);
+fn setup(mut commands: Commands,) {
+    commands.spawn(Camera2dBundle {
+        projection: OrthographicProjection { scale: 0.01, ..default() },
+        transform: Transform::default().with_translation(Vec3::Z),
+        camera_2d: Camera2d {clear_color: bevy::core_pipeline::clear_color::ClearColorConfig::Custom(Color::rgb(0.2, 0.2, 0.2))},
+        ..default()
+    }).insert(PanCam::default());
+}
 
-#[derive(Component, Default)]
-#[storage(NullStorage)]
-pub struct Log;
-
-struct DebugLog(i32);
-impl<'a> System<'a> for DebugLog {
-    type SystemData = (ReadStorage<'a, Log>, ReadStorage<'a, Position>);
-
-    fn run(&mut self, (log, positions): Self::SystemData) {
-        self.0 += 1;
-        if self.0 % 10 != 0 {
-            return
-        }
-        for (position, _) in (&positions, &log).join() {
-            println!("{:?}", &position.now);
+fn sync_points(
+    mut query: Query<(Entity, &Position, Option<&mut Transform>)>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    for (entity, pos, transform) in query.iter_mut() {
+        if let Some(mut transform) = transform {
+            transform.translation.x = pos.now.x;
+            transform.translation.y = pos.now.y;
+            transform.translation.z = 1.0;
+        } else {
+            commands.entity(entity).insert(MaterialMesh2dBundle {
+                mesh: meshes.add(Mesh::from(shape::Circle::default())).into(),
+                transform: Transform::default().with_scale(Vec3::splat(0.2)),
+                material: materials.add(ColorMaterial::from(Color::RED)),
+                ..default()
+            });
         }
     }
 }
 
-fn main() {
-    let mut world = World::new();
-    world.register::<Locked>();
-    world.register::<Log>();
-    world.register::<Position>();
-    world.register::<Force>();
-    world.register::<Mass>();
-    world.register::<Spring>();
-    world.register::<Drag>();
-    world.register::<Control>();
-    world.insert(DeltaTime(0.05));
-
-    worm::builder(&mut world, 5);
-
-    let mut dispatcher = DispatcherBuilder::new()
-        .with(ControlSystem(0.0), "control_system", &[])
-        .with(ForceInitializer, "force_initializer", &[])
-        .with(SpringMassSystem, "spring_mass_system", &["force_initializer"])
-        .with(PointDragSystem, "point_drag_system", &["force_initializer"])
-        .with(LinearDragSystem, "linear_drag_system", &["force_initializer"])
-        .with(VerletIntegration, "verlet_integration", &["spring_mass_system", "point_drag_system"])
-        .with(DebugLog(1), "debug_log", &["verlet_integration"])
-        .build();
-
-    let stdin = std::io::stdin();
-    for _line in stdin.lines() {
-        for _ in 0..10 {
-            dispatcher.dispatch(&mut world);
-        }
+fn sync_edges(
+    query: Query<&Spring>,
+    positions: Query<&Position>,
+    mut lines: ResMut<DebugLines>
+) {
+    for spring in query.iter() {
+        let a = positions.get(spring.a).unwrap().now;
+        let b = positions.get(spring.b).unwrap().now;
+        lines.line(a.as_vec3(0.), b.as_vec3(0.), 0.);
     }
+}
 
-    println!("[exited]");
-    world.maintain();
+fn logger(positions: Query<(&Position, &Force), With<Log>>) {
+    for (pos, _) in positions.iter() {
+        println!("{:?}", pos.now);
+    }
+}
+
+fn main() {
+    App::new()
+        .add_plugins(DefaultPlugins)
+        .add_system(bevy::window::close_on_esc)
+        .add_plugin(PanCamPlugin::default())
+        .add_plugin(physics::PhysicsPlugin)
+        .add_plugin(DebugLinesPlugin::with_depth_test(true))
+        .add_startup_system(setup)
+        .add_startup_system(worm::worm_builder)
+        .add_system(logger)
+        .add_system(sync_points)
+        .add_system(sync_edges)
+        .add_system(draw_grid)
+        .run();
 }
