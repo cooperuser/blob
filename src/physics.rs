@@ -132,10 +132,13 @@ fn control_system(
     mut query: Query<(&mut Spring, &Control)>,
     mut counter: ResMut<Counter>
 ) {
+    let modes = vec![(50.0, 3.0), (250.0, 6.0)];
+    let mode = modes.get(1).unwrap();
+
     counter.0 += 1;
-    let t = counter.0 as f32 / 50.0;
+    let t = counter.0 as f32 / mode.0;
     for (mut spring, control) in query.iter_mut() {
-        let phase = control.index as f32 * PI / 3.0;
+        let phase = control.index as f32 * PI / mode.1;
         let u = (t + phase).sin() * control.side;
         spring.length = 0.5 + u * 0.2;
     }
