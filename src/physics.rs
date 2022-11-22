@@ -128,15 +128,24 @@ fn verlet_integration(
     }
 }
 
+#[derive(Default)]
+struct ControlMode(usize);
+
 fn control_system(
     mut query: Query<(&mut Spring, &Control)>,
-    mut counter: ResMut<Counter>
+    mut counter: ResMut<Counter>,
+    mut mode_index: Local<ControlMode>,
+    keys: Res<Input<KeyCode>>
 ) {
     let modes = vec![(50.0, 3.0), (250.0, 6.0)];
-    let mode = modes.get(1).unwrap();
+    let mode = modes.get(mode_index.0).unwrap();
+
+    if keys.just_released(KeyCode::Space) {
+        mode_index.0 = (mode_index.0 + 1) % modes.len();
+    }
 
     counter.0 += 1;
-    let t = counter.0 as f32 / mode.0;
+    let t = -counter.0 as f32 / mode.0;
     for (mut spring, control) in query.iter_mut() {
         let phase = control.index as f32 * PI / mode.1;
         let u = (t + phase).sin() * control.side;
