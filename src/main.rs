@@ -79,8 +79,8 @@ fn main() {
         .add_startup_system(setup)
         .add_startup_system(worm::worm_builder)
         .add_system(logger)
+        .add_system(draw_grid.before(sync_edges))
         .add_system(sync_points)
         .add_system(sync_edges)
-        .add_system(draw_grid)
         .run();
 }
