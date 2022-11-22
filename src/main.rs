@@ -18,7 +18,6 @@ fn setup(mut commands: Commands,) {
     commands.spawn(Camera2dBundle {
         projection: OrthographicProjection { scale: 0.01, ..default() },
         transform: Transform::default().with_translation(Vec3::Z),
-        camera_2d: Camera2d {clear_color: bevy::core_pipeline::clear_color::ClearColorConfig::Custom(Color::rgb(0.2, 0.2, 0.2))},
         ..default()
     }).insert(PanCam::default());
 }
@@ -66,6 +65,7 @@ fn logger(positions: Query<(&Position, &Force), With<Log>>) {
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
         .add_system(bevy::window::close_on_esc)
         .add_plugin(PanCamPlugin::default())
         .add_plugin(physics::PhysicsPlugin)
