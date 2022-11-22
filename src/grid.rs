@@ -17,6 +17,7 @@ pub fn draw_grid(
         Vector::new(t.x, t.y)
     };
 
+    if max.x - min.x >= 100.0 { return; }
     for x in min.x as isize ..= max.x as isize {
         let color = match x {
             0 => Color::WHITE,
