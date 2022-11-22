@@ -64,8 +64,14 @@ fn logger(positions: Query<(&Position, &Force), With<Log>>) {
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
         .insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            window: WindowDescriptor {
+                fit_canvas_to_parent: true,
+                ..default()
+            },
+            ..default()
+        }))
         .add_system(bevy::window::close_on_esc)
         .add_plugin(PanCamPlugin::default())
         .add_plugin(physics::PhysicsPlugin)
