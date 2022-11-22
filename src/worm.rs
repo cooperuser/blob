@@ -14,13 +14,14 @@ pub fn worm_builder(
 ) {
     let num_segments = 16;
     let s = 0.5;
-    let d = 0.0;
+    let drag_node = 0.0;
+    let drag_edge = 1.0;
 
     let head = commands.spawn((
         Position::new(Vector::zero()),
         Force(Vector::zero()),
         Mass(1.0),
-        Drag(d)
+        Drag(drag_node)
     )).id();
 
     let entities: Vec<Segment<Entity>> = gen_segments(num_segments).iter()
@@ -29,25 +30,25 @@ pub fn worm_builder(
                 Position::new(seg.center * s),
                 Force(Vector::zero()),
                 Mass(1.0),
-                Drag(d)
+                Drag(drag_node)
             )).id(),
             left: commands.spawn((
                 Position::new(seg.left * s),
                 Force(Vector::zero()),
                 Mass(1.0),
-                Drag(d)
+                Drag(drag_node)
             )).id(),
             right: commands.spawn((
                 Position::new(seg.right * s),
                 Force(Vector::zero()),
                 Mass(1.0),
-                Drag(d)
+                Drag(drag_node)
             )).id(),
         }).collect();
 
-    let soft = 1.5*5.0;
-    let hard = 0.5*10.0;
-    let skeleton = 0.5*15.0;
+    let soft = 7.5;
+    let hard = 7.5;
+    let skeleton = 7.5;
 
     commands.spawn(Spring { a: entities[0].left, b: head, constant: soft, length: 1.0 * s });
     commands.spawn(Spring { a: entities[0].center, b: head, constant: skeleton, length: 1.0 * s });
@@ -59,7 +60,7 @@ pub fn worm_builder(
         let new = &entities[i as usize];
         let old = &entities[(i - 1) as usize];
 
-        commands.spawn((Spring { a: new.center, b: old.center, constant: skeleton, length: 1.0 * s }, Drag(1.0)));
+        commands.spawn(Spring { a: new.center, b: old.center, constant: skeleton, length: 1.0 * s });
         commands.spawn(Spring { a: new.center, b: new.left, constant: soft, length: 1.0 * s });
         commands.spawn(Spring { a: new.center, b: new.right, constant: soft, length: 1.0 * s });
         commands.spawn(Spring { a: new.left, b: old.center, constant: soft, length: 1.0 * s });
@@ -67,12 +68,12 @@ pub fn worm_builder(
         commands.spawn((
             Spring { a: new.left, b: old.left, constant: hard, length: 1.0 * s },
             Control { index: i, side: -1.0 },
-            // Drag(1.0)
+            Drag(drag_edge)
         ));
         commands.spawn((
             Spring { a: new.right, b: old.right, constant: hard, length: 1.0 * s },
             Control { index: i, side: 1.0 },
-            // Drag(1.0)
+            Drag(drag_edge)
         ));
     }
 }
