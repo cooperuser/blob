@@ -2,6 +2,9 @@
 [build]
 target = "x86_64-pc-windows-gnu"
 
+[target.wasm32-unknown-unknown]
+runner = "wasm-server-runner"
+
 # NOTE: For maximum performance, build using a nightly compiler
 # If you are using rust stable, remove the "-Zshare-generics=y" below.
 
