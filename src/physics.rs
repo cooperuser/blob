@@ -1,18 +1,19 @@
 use bevy::prelude::*;
+use bevy_inspector_egui::{Inspectable, RegisterInspectable};
 
 #[derive(Resource, Default)]
 struct DeltaTime(f32);
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Inspectable)]
 pub struct Locked;
-#[derive(Component, Default)]
+#[derive(Component, Default, Inspectable)]
 pub struct Mass(pub f32);
-#[derive(Component, Default)]
+#[derive(Component, Default, Inspectable)]
 pub struct Drag(pub f32);
-#[derive(Component, Default)]
+#[derive(Component, Default, Inspectable)]
 pub struct Force(pub Vec3);
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Inspectable)]
 pub struct Position {
     pub now: Vec3,
     pub last: Vec3,
@@ -23,7 +24,7 @@ impl Position {
     pub fn new(pos: Vec3) -> Self { Self { now: pos, last: pos } }
 }
 
-#[derive(Component)]
+#[derive(Component, Inspectable)]
 pub struct Spring {
     pub a: Entity,
     pub b: Entity,
@@ -111,6 +112,11 @@ pub struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(DeltaTime(0.05));
+        app.register_inspectable::<Mass>();
+        app.register_inspectable::<Drag>();
+        app.register_inspectable::<Force>();
+        app.register_inspectable::<Position>();
+        app.register_inspectable::<Spring>();
         app.add_system(force_resetter);
         app.add_system(spring_mass_system.after(force_resetter));
         app.add_system(point_drag_system.after(force_resetter));

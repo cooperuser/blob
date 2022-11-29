@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
 use bevy_pancam::*;
 use bevy_prototype_debug_lines::*;
+use bevy_inspector_egui::WorldInspectorPlugin;
 
 mod physics;
 mod vector;
@@ -98,6 +99,7 @@ fn main() {
             },
             ..default()
         }))
+        .add_plugin(WorldInspectorPlugin::new())
         .add_system(bevy::window::close_on_esc)
         .add_plugin(PanCamPlugin::default())
         // .add_plugin(physics::PhysicsPlugin)
