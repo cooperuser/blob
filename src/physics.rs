@@ -1,57 +1,38 @@
-use std::f32::consts::PI;
-
-use crate::vector::Vector;
-
 use bevy::prelude::*;
 
 #[derive(Resource, Default)]
 struct DeltaTime(f32);
-#[derive(Resource, Default)]
-struct Counter(i32);
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct Locked;
+#[derive(Component, Default)]
+pub struct Mass(pub f32);
+#[derive(Component, Default)]
+pub struct Drag(pub f32);
+#[derive(Component, Default)]
+pub struct Force(pub Vec3);
 
-#[derive(Component, Debug)]
+#[derive(Component, Default)]
 pub struct Position {
-    pub now: Vector,
-    pub last: Vector
+    pub now: Vec3,
+    pub last: Vec3,
 }
 
 impl Position {
     #[allow(unused)]
-    pub fn new(pos: Vector) -> Self { Self { now: pos, last: pos } }
+    pub fn new(pos: Vec3) -> Self { Self { now: pos, last: pos } }
 }
 
-#[derive(Component, Debug)]
-pub struct Force(pub Vector);
-
-#[allow(unused)]
-#[derive(Component, Debug)]
+#[derive(Component)]
 pub struct Spring {
     pub a: Entity,
     pub b: Entity,
     pub constant: f32,
-    pub length: f32,
+    pub length: f32
 }
 
-#[allow(unused)]
-#[derive(Component, Debug)]
-pub struct Control {
-    pub index: i32,
-    pub side: f32
-}
-
-#[derive(Component, Debug)]
-pub struct Mass(pub f32);
-
-#[derive(Component, Debug)]
-pub struct Drag(pub f32);
-
-fn force_resetter(mut query: Query<&mut Force>) {
-    for mut force in query.iter_mut() {
-        force.0 = Vector::zero();
-    }
+fn force_resetter(mut forces: Query<&mut Force>) {
+    for mut force in forces.iter_mut() { force.0 = Vec3::ZERO; }
 }
 
 fn spring_mass_system(
@@ -65,10 +46,10 @@ fn spring_mass_system(
             let b = positions.get(spring.b).unwrap();
             a.now - b.now
         };
-        let dist = diff.magnitude();
+        let dist = diff.length();
 
         let x = spring.length - dist;
-        let f = -spring.constant * x / diff.magnitude();
+        let f = -spring.constant * x / dist;
 
         let mut force_a = forces.get_mut(spring.a).unwrap();
         force_a.0 -= diff * f;
@@ -86,12 +67,12 @@ fn linear_drag_system(
         let a = positions.get(spring.a).unwrap();
         let b = positions.get(spring.b).unwrap();
         let tangent = b.now - a.now;
-        let length = tangent.magnitude();
-        let normal = Vector::new(tangent.y, -tangent.x);
+        let length = tangent.length();
+        let normal = Vec3::new(tangent.y, -tangent.x, 0.0);
         let v_a = a.now - a.last;
         let v_b = b.now - b.last;
         let v = (v_a + v_b) / 2.0;
-        let dot = Vector::dot(v.normalized(), normal.normalized());
+        let dot = Vec3::dot(v.normalize_or_zero(), normal.normalize_or_zero());
 
         let force = dot * length * drag.0;
         let mut force_a = forces.get_mut(spring.a).unwrap();
@@ -101,16 +82,14 @@ fn linear_drag_system(
     }
 }
 
-fn point_drag_system(
-    mut query: Query<(&Position, &mut Force), With<Drag>>,
-) {
+fn point_drag_system(mut query: Query<(&Position, &mut Force), With<Drag>>) {
     let density = 1.0;
     let area = 1.0;
     for (pos, mut force) in query.iter_mut() {
         let v = pos.now - pos.last;
-        let v_sq = v.sqr_magnitude();
+        let v_sq = v.length_squared();
         let f = 2000.0 * density * area * v_sq;
-        force.0 -= v.normalized() * f;
+        force.0 -= v.normalize_or_zero() * f;
     }
 }
 
@@ -128,39 +107,11 @@ fn verlet_integration(
     }
 }
 
-#[derive(Default)]
-struct ControlMode(usize);
-
-fn control_system(
-    mut query: Query<(&mut Spring, &Control)>,
-    mut counter: ResMut<Counter>,
-    mut mode_index: Local<ControlMode>,
-    keys: Res<Input<KeyCode>>
-) {
-    let modes = vec![(50.0, 3.0), (250.0, 6.0)];
-    let mode = modes.get(mode_index.0).unwrap();
-
-    if keys.just_released(KeyCode::Space) {
-        mode_index.0 = (mode_index.0 + 1) % modes.len();
-    }
-
-    counter.0 += 1;
-    let t = -counter.0 as f32 / mode.0;
-    for (mut spring, control) in query.iter_mut() {
-        let phase = control.index as f32 * PI / mode.1;
-        let u = (t + phase).sin() * control.side;
-        spring.length = 0.5 + u * 0.2;
-    }
-}
-
 pub struct PhysicsPlugin;
-
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(DeltaTime(0.05));
-        app.insert_resource(Counter(0));
         app.add_system(force_resetter);
-        app.add_system(control_system);
         app.add_system(spring_mass_system.after(force_resetter));
         app.add_system(point_drag_system.after(force_resetter));
         app.add_system(linear_drag_system.after(force_resetter));

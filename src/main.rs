@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use bevy::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
 use bevy_pancam::*;
@@ -14,12 +16,30 @@ use physics::*;
 #[derive(Component)]
 struct Log;
 
-fn setup(mut commands: Commands,) {
+fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle {
-        projection: OrthographicProjection { scale: 0.01, ..default() },
+        projection: OrthographicProjection { scale: 0.02, ..default() },
         transform: Transform::default().with_translation(Vec3::Z),
         ..default()
     }).insert(PanCam::default());
+
+    fn default_control(p: f32, t: f32, time: f32, index: f32, side: f32) -> f32 {
+        let phase = index * PI / p;
+        let u = (-time * 60.0 / t + phase).sin() * side;
+        0.5 + u * 0.2
+    }
+
+    worm::worm_builder(15, Vec3::ZERO, &mut commands, |time, index, side| {
+        default_control(3.0, 50.0, time, index, side)
+    });
+
+    worm::worm_builder(15, Vec3::new(0., -4., 0.), &mut commands, |time, index, side| {
+        default_control(6.0, 250.0, time, index, side)
+    });
+
+    worm::worm_builder(15, Vec3::new(0., 4., 0.), &mut commands, |time, index, side| {
+        default_control(6.0, 200.0, time, index, side)
+    });
 }
 
 fn sync_points(
@@ -37,7 +57,7 @@ fn sync_points(
             commands.entity(entity).insert(MaterialMesh2dBundle {
                 mesh: meshes.add(Mesh::from(shape::Circle::default())).into(),
                 transform: Transform::default().with_scale(Vec3::splat(0.2)),
-                material: materials.add(ColorMaterial::from(Color::RED)),
+                material: materials.add(ColorMaterial::from(Color::WHITE)),
                 ..default()
             });
         }
@@ -46,13 +66,19 @@ fn sync_points(
 
 fn sync_edges(
     query: Query<&Spring>,
-    positions: Query<&Position>,
+    transforms: Query<&GlobalTransform>,
     mut lines: ResMut<DebugLines>
 ) {
     for spring in query.iter() {
-        let a = positions.get(spring.a).unwrap().now;
-        let b = positions.get(spring.b).unwrap().now;
-        lines.line(a.as_vec3(0.), b.as_vec3(0.), 0.);
+        let a = match transforms.get(spring.a) {
+            Ok(t) => t.translation(),
+            Err(_) => Vec3::ZERO
+        };
+        let b = match transforms.get(spring.b) {
+            Ok(t) => t.translation(),
+            Err(_) => Vec3::ZERO
+        };
+        lines.line(a, b, 0.);
     }
 }
 
@@ -74,13 +100,15 @@ fn main() {
         }))
         .add_system(bevy::window::close_on_esc)
         .add_plugin(PanCamPlugin::default())
+        // .add_plugin(physics::PhysicsPlugin)
         .add_plugin(physics::PhysicsPlugin)
         .add_plugin(DebugLinesPlugin::with_depth_test(true))
         .add_startup_system(setup)
-        .add_startup_system(worm::worm_builder)
+        // .add_startup_system(worm::worm_builder)
         .add_system(logger)
         .add_system(draw_grid.before(sync_edges))
         .add_system(sync_points)
         .add_system(sync_edges)
+        .add_system(worm::worm_control_system)
         .run();
 }

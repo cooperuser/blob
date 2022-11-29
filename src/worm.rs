@@ -1,7 +1,6 @@
-use crate::physics::{Position, Force, Mass, Spring, Drag, Control};
-use crate::vector::Vector;
-
 use bevy::prelude::*;
+
+use crate::physics::*;
 
 struct Segment<T> {
     center: T,
@@ -9,80 +8,112 @@ struct Segment<T> {
     right: T
 }
 
-pub fn worm_builder(
-    mut commands: Commands
-) {
-    let num_segments = 16;
-    let s = 0.5;
-    let drag_node = 0.0;
-    let drag_edge = 1.0;
+#[derive(Component)]
+pub struct WormController(fn(f32, f32, f32) -> f32);
 
-    let head = commands.spawn((
-        Position::new(Vector::zero()),
-        Force(Vector::zero()),
-        Mass(1.0),
-        Drag(drag_node)
-    )).id();
-
-    let entities: Vec<Segment<Entity>> = gen_segments(num_segments).iter()
-        .map(|seg| Segment {
-            center: commands.spawn((
-                Position::new(seg.center * s),
-                Force(Vector::zero()),
-                Mass(1.0),
-                Drag(drag_node)
-            )).id(),
-            left: commands.spawn((
-                Position::new(seg.left * s),
-                Force(Vector::zero()),
-                Mass(1.0),
-                Drag(drag_node)
-            )).id(),
-            right: commands.spawn((
-                Position::new(seg.right * s),
-                Force(Vector::zero()),
-                Mass(1.0),
-                Drag(drag_node)
-            )).id(),
-        }).collect();
-
-    let soft = 7.5;
-    let hard = 7.5;
-    let skeleton = 7.5;
-
-    commands.spawn(Spring { a: entities[0].left, b: head, constant: soft, length: 1.0 * s });
-    commands.spawn(Spring { a: entities[0].center, b: head, constant: skeleton, length: 1.0 * s });
-    commands.spawn(Spring { a: entities[0].right, b: head, constant: soft, length: 1.0 * s });
-    commands.spawn(Spring { a: entities[0].center, b: entities[0].left, constant: soft, length: 1.0 * s });
-    commands.spawn(Spring { a: entities[0].center, b: entities[0].right, constant: soft, length: 1.0 * s });
-
-    for i in 1..num_segments {
-        let new = &entities[i as usize];
-        let old = &entities[(i - 1) as usize];
-
-        commands.spawn(Spring { a: new.center, b: old.center, constant: skeleton, length: 1.0 * s });
-        commands.spawn(Spring { a: new.center, b: new.left, constant: soft, length: 1.0 * s });
-        commands.spawn(Spring { a: new.center, b: new.right, constant: soft, length: 1.0 * s });
-        commands.spawn(Spring { a: new.left, b: old.center, constant: soft, length: 1.0 * s });
-        commands.spawn(Spring { a: new.right, b: old.center, constant: soft, length: 1.0 * s });
-        commands.spawn((
-            Spring { a: new.left, b: old.left, constant: hard, length: 1.0 * s },
-            Control { index: i, side: -1.0 },
-            Drag(drag_edge)
-        ));
-        commands.spawn((
-            Spring { a: new.right, b: old.right, constant: hard, length: 1.0 * s },
-            Control { index: i, side: 1.0 },
-            Drag(drag_edge)
-        ));
-    }
+#[derive(Component)]
+pub struct Control {
+    pub index: i32,
+    pub side: f32
 }
 
-fn gen_segments(num_segments: i32) -> Vec<Segment<Vector>> {
+fn gen_segments(num_segments: i32) -> Vec<Segment<Vec3>> {
     let offset = 0.5;
     (0..num_segments).map(|i| Segment {
-        center: Vector::new(-i as f32 - 1.0, 0.0),
-        left: Vector::new(-i as f32 - offset, -offset),
-        right: Vector::new(-i as f32 - offset, offset),
+        center: Vec3::new(-i as f32 - 1.0, 0.0, 0.0),
+        left: Vec3::new(-i as f32 - offset, -offset, 0.0),
+        right: Vec3::new(-i as f32 - offset, offset, 0.0),
     }).collect()
+}
+
+pub fn worm_builder(
+    num_segments: usize,
+    position: Vec3,
+    commands: &mut Commands,
+    controller: fn(f32, f32, f32) -> f32
+) -> Entity {
+    commands.spawn((
+        Transform::default().with_translation(position),
+        GlobalTransform::default(),
+        VisibilityBundle::default(),
+        WormController(controller)
+    )).with_children(|parent| {
+        let drag_node = 0.0;
+        let drag_edge = 1.0;
+        let s = 0.5;
+        let head = parent.spawn((
+            Position::new(Vec3::ZERO),
+            Force::default(),
+            Mass(1.0),
+            Drag(drag_node)
+        )).id();
+
+        let entities: Vec<Segment<Entity>> = gen_segments(num_segments as i32 + 1).iter()
+            .map(|seg| Segment {
+                center: parent.spawn((
+                    Position::new(seg.center * s),
+                    Force::default(),
+                    Mass(1.0),
+                    Drag(drag_node)
+                )).id(),
+                left: parent.spawn((
+                    Position::new(seg.left * s),
+                    Force::default(),
+                    Mass(1.0),
+                    Drag(drag_node)
+                )).id(),
+                right: parent.spawn((
+                    Position::new(seg.right * s),
+                    Force::default(),
+                    Mass(1.0),
+                    Drag(drag_node)
+                )).id(),
+            }).collect();
+
+        let soft = 7.5;
+        let hard = 7.5;
+        let skeleton = 7.5;
+
+        parent.spawn(Spring { a: entities[0].left, b: head, constant: soft, length: 1.0 * s });
+        parent.spawn(Spring { a: entities[0].center, b: head, constant: skeleton, length: 1.0 * s });
+        parent.spawn(Spring { a: entities[0].right, b: head, constant: soft, length: 1.0 * s });
+        parent.spawn(Spring { a: entities[0].center, b: entities[0].left, constant: soft, length: 1.0 * s });
+        parent.spawn(Spring { a: entities[0].center, b: entities[0].right, constant: soft, length: 1.0 * s });
+
+        for i in 1..num_segments + 1 {
+            let new = &entities[i as usize];
+            let old = &entities[(i - 1) as usize];
+
+            parent.spawn(Spring { a: new.center, b: old.center, constant: skeleton, length: 1.0 * s });
+            parent.spawn(Spring { a: new.center, b: new.left, constant: soft, length: 1.0 * s });
+            parent.spawn(Spring { a: new.center, b: new.right, constant: soft, length: 1.0 * s });
+            parent.spawn(Spring { a: new.left, b: old.center, constant: soft, length: 1.0 * s });
+            parent.spawn(Spring { a: new.right, b: old.center, constant: soft, length: 1.0 * s });
+            parent.spawn((
+                Spring { a: new.left, b: old.left, constant: hard, length: 1.0 * s },
+                Control { index: i as i32, side: -1.0 },
+                Drag(drag_edge)
+            ));
+            parent.spawn((
+                Spring { a: new.right, b: old.right, constant: hard, length: 1.0 * s },
+                Control { index: i as i32, side: 1.0 },
+                Drag(drag_edge)
+            ));
+        }
+    }).id()
+}
+
+pub fn worm_control_system(
+    worms: Query<&WormController>,
+    mut nodes: Query<(&Parent, &mut Spring, &Control)>,
+    time: Res<Time>
+) {
+    for (parent, mut spring, control) in nodes.iter_mut() {
+        let worm = worms.get(parent.get()).unwrap();
+        spring.length = worm.0(
+            time.elapsed_seconds(),
+            control.index as f32,
+            control.side
+        );
+    }
 }
