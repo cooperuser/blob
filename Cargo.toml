@@ -9,6 +9,7 @@ bevy = { version = "0.9.0" }
 bevy-inspector-egui = "0.14.0"
 bevy_pancam = "0.7.0"
 bevy_prototype_debug_lines = "0.9.0"
+ctrnn = { path="../../the-digital/ctrnn" }
 
 [workspace]
 resolver = "2" # Important! wgpu/Bevy needs this!

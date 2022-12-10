@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::physics::*;
+use crate::{physics::*, brain::CTRNN};
 
 struct Segment<T> {
     center: T,
@@ -9,7 +9,14 @@ struct Segment<T> {
 }
 
 #[derive(Component)]
-pub struct WormController(fn(f32, f32, f32) -> f32);
+pub struct CyclicalMapping;
+#[derive(Component)]
+pub struct RegionalMapping;
+
+#[derive(Component)]
+pub struct WormController {
+    func: fn(f32, f32, f32) -> f32
+}
 
 #[derive(Component)]
 pub struct Control {
@@ -32,11 +39,15 @@ pub fn worm_builder(
     commands: &mut Commands,
     controller: fn(f32, f32, f32) -> f32
 ) -> Entity {
+    let ctrnn = CTRNN::trained_ctrnn();
+    let voltages = ctrnn.init_voltage();
+
     commands.spawn((
         Transform::default().with_translation(position),
         GlobalTransform::default(),
         VisibilityBundle::default(),
-        WormController(controller)
+        WormController { func: controller },
+        CTRNN { ctrnn, voltages }
     )).with_children(|parent| {
         let drag_node = 0.0;
         let drag_edge = 1.0;
@@ -103,17 +114,55 @@ pub fn worm_builder(
     }).id()
 }
 
-pub fn worm_control_system(
-    worms: Query<&WormController>,
+fn worm_control_system(
+    worms: Query<(&WormController, &CTRNN), (Without<CyclicalMapping>, Without<RegionalMapping>)>,
     mut nodes: Query<(&Parent, &mut Spring, &Control)>,
     time: Res<Time>
 ) {
     for (parent, mut spring, control) in nodes.iter_mut() {
-        let worm = worms.get(parent.get()).unwrap();
-        spring.length = worm.0(
-            time.elapsed_seconds(),
-            control.index as f32,
-            control.side
-        );
+        if let Ok((worm, _ctrnn)) = worms.get(parent.get()) {
+            spring.length = (worm.func)(
+                time.elapsed_seconds(),
+                control.index as f32,
+                control.side
+            );
+        }
+    }
+}
+
+fn cyclical_neuron_mapping(
+    worms: Query<(&WormController, &CTRNN), With<CyclicalMapping>>,
+    mut springs: Query<(&Parent, &mut Spring, &Control)>,
+) {
+    for (parent, mut spring, control) in springs.iter_mut() {
+        if let Ok((_worm, ctrnn)) = worms.get(parent.get()) {
+            let outputs = ctrnn.get_outputs();
+            let index = control.index / 2 % outputs.len() as i32;
+            let value = outputs[index as usize] as f32 - 0.5;
+            spring.length = 0.5 + value * 0.5 * control.side;
+        }
+    }
+}
+
+fn regional_neuron_mapping(
+    worms: Query<(&WormController, &CTRNN), With<RegionalMapping>>,
+    mut springs: Query<(&Parent, &mut Spring, &Control)>,
+) {
+    for (parent, mut spring, control) in springs.iter_mut() {
+        if let Ok((_worm, ctrnn)) = worms.get(parent.get()) {
+            let outputs = ctrnn.get_outputs();
+            let index = control.index / 8 % outputs.len() as i32;
+            let value = outputs[index as usize] as f32 - 0.5;
+            spring.length = 0.5 + value * 0.5 * control.side;
+        }
+    }
+}
+
+pub struct WormPlugin;
+impl Plugin for WormPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_system(worm_control_system);
+        app.add_system(cyclical_neuron_mapping);
+        app.add_system(regional_neuron_mapping);
     }
 }

@@ -10,6 +10,7 @@ mod physics;
 mod vector;
 mod worm;
 mod grid;
+mod brain;
 
 use grid::draw_grid;
 use physics::*;
@@ -30,17 +31,18 @@ fn setup(mut commands: Commands) {
         0.5 + u * 0.2
     }
 
-    worm::worm_builder(15, Vec3::ZERO, &mut commands, |time, index, side| {
+    let worm = worm::worm_builder(15, Vec3::ZERO, &mut commands, |time, index, side| {
         default_control(3.0, 50.0, time, index, side)
     });
+    commands.entity(worm).insert(worm::CyclicalMapping);
 
-    worm::worm_builder(15, Vec3::new(0., -4., 0.), &mut commands, |time, index, side| {
-        default_control(6.0, 250.0, time, index, side)
-    });
+    // worm::worm_builder(15, Vec3::new(0., -4., 0.), &mut commands, |time, index, side| {
+    //     default_control(6.0, 250.0, time, index, side)
+    // });
 
-    worm::worm_builder(15, Vec3::new(0., 4., 0.), &mut commands, |time, index, side| {
-        default_control(6.0, 200.0, time, index, side)
-    });
+    // worm::worm_builder(15, Vec3::new(0., 4., 0.), &mut commands, |time, index, side| {
+    //     default_control(6.0, 200.0, time, index, side)
+    // });
 }
 
 fn sync_points(
@@ -66,11 +68,11 @@ fn sync_points(
 }
 
 fn sync_edges(
-    query: Query<&Spring>,
+    query: Query<(&Spring, Option<&worm::Control>)>,
     transforms: Query<&GlobalTransform>,
     mut lines: ResMut<DebugLines>
 ) {
-    for spring in query.iter() {
+    for (spring, control) in query.iter() {
         let a = match transforms.get(spring.a) {
             Ok(t) => t.translation(),
             Err(_) => Vec3::ZERO
@@ -79,7 +81,17 @@ fn sync_edges(
             Ok(t) => t.translation(),
             Err(_) => Vec3::ZERO
         };
-        lines.line(a, b, 0.);
+        let color = match control {
+            _ => Color::WHITE
+            // Some(control) => match (control.index - 1) / 5 {
+            //     0 => Color::RED,
+            //     1 => Color::GREEN,
+            //     2 => Color::BLUE,
+            //     _ => Color::WHITE
+            // },
+            // None => Color::WHITE,
+        };
+        lines.line_colored(a, b, 0., color);
     }
 }
 
@@ -104,6 +116,7 @@ fn main() {
         .add_plugin(PanCamPlugin::default())
         // .add_plugin(physics::PhysicsPlugin)
         .add_plugin(physics::PhysicsPlugin)
+        .add_plugin(worm::WormPlugin)
         .add_plugin(DebugLinesPlugin::with_depth_test(true))
         .add_startup_system(setup)
         // .add_startup_system(worm::worm_builder)
@@ -111,6 +124,6 @@ fn main() {
         .add_system(draw_grid.before(sync_edges))
         .add_system(sync_points)
         .add_system(sync_edges)
-        .add_system(worm::worm_control_system)
+        .add_system(brain::ctrnn_update)
         .run();
 }
