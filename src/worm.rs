@@ -161,7 +161,7 @@ fn regional_neuron_mapping(
 pub struct WormPlugin;
 impl Plugin for WormPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(worm_control_system);
+        // app.add_system(worm_control_system);
         app.add_system(cyclical_neuron_mapping);
         app.add_system(regional_neuron_mapping);
     }

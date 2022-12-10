@@ -102,28 +102,31 @@ fn logger(positions: Query<(&Position, &Force), With<Log>>) {
 }
 
 fn main() {
-    App::new()
-        .insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            window: WindowDescriptor {
-                fit_canvas_to_parent: true,
+    let mut app = App::new();
+    let using_gui = false;
+    if using_gui {
+        app.insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
+            .add_plugins(DefaultPlugins.set(WindowPlugin {
+                window: WindowDescriptor {
+                    fit_canvas_to_parent: true,
+                    ..default()
+                },
                 ..default()
-            },
-            ..default()
-        }))
-        .add_plugin(WorldInspectorPlugin::new())
-        .add_system(bevy::window::close_on_esc)
-        .add_plugin(PanCamPlugin::default())
-        // .add_plugin(physics::PhysicsPlugin)
+            }))
+            .add_system(bevy::window::close_on_esc)
+            .add_plugin(WorldInspectorPlugin::new())
+            .add_plugin(PanCamPlugin::default())
+            .add_plugin(DebugLinesPlugin::with_depth_test(true))
+            .add_system(draw_grid.before(sync_edges))
+            .add_system(sync_points)
+            .add_system(sync_edges);
+    }
+
+    app
         .add_plugin(physics::PhysicsPlugin)
         .add_plugin(worm::WormPlugin)
-        .add_plugin(DebugLinesPlugin::with_depth_test(true))
         .add_startup_system(setup)
-        // .add_startup_system(worm::worm_builder)
-        .add_system(logger)
-        .add_system(draw_grid.before(sync_edges))
-        .add_system(sync_points)
-        .add_system(sync_edges)
         .add_system(brain::ctrnn_update)
+        .add_system(logger)
         .run();
 }
