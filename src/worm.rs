@@ -12,6 +12,11 @@ struct Segment<T> {
 pub struct CyclicalMapping;
 #[derive(Component)]
 pub struct RegionalMapping;
+#[derive(Component)]
+pub struct FrequencyMapping {
+    pub frequency: f32,
+    pub phase: f32
+}
 
 #[derive(Component)]
 pub struct WormController {
@@ -115,7 +120,11 @@ pub fn worm_builder(
 }
 
 fn worm_control_system(
-    worms: Query<(&WormController, &CTRNN), (Without<CyclicalMapping>, Without<RegionalMapping>)>,
+    worms: Query<(&WormController, &CTRNN), (
+        Without<CyclicalMapping>,
+        Without<RegionalMapping>,
+        Without<FrequencyMapping>
+    )>,
     mut nodes: Query<(&Parent, &mut Spring, &Control)>,
     time: Res<TimeTracker>
 ) {
@@ -158,11 +167,26 @@ fn regional_neuron_mapping(
     }
 }
 
+fn frequency_neuron_mapping(
+    worms: Query<(&WormController, &CTRNN, &FrequencyMapping)>,
+    mut springs: Query<(&Parent, &mut Spring, &Control)>,
+    time: Res<TimeTracker>
+) {
+    for (parent, mut spring, control) in springs.iter_mut() {
+        if let Ok((_worm, _ctrnn, fm)) = worms.get(parent.get()) {
+            let phase = control.index as f32 * std::f32::consts::PI / fm.phase;
+            let u = (-time.0 * 60.0 / fm.frequency + phase).sin() * control.side;
+            spring.length = 0.5 + u * 0.2
+        }
+    }
+}
+
 pub struct WormPlugin;
 impl Plugin for WormPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(worm_control_system);
         app.add_system(cyclical_neuron_mapping);
         app.add_system(regional_neuron_mapping);
+        app.add_system(frequency_neuron_mapping);
     }
 }
