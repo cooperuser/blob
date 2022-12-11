@@ -1,5 +1,6 @@
 use std::f32::consts::PI;
 
+use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
 use bevy_pancam::*;
@@ -18,6 +19,10 @@ use physics::*;
 #[derive(Component)]
 struct Log;
 
+#[derive(Resource, Default)]
+pub struct TimeTracker(f32);
+
+
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle {
         projection: OrthographicProjection { scale: 0.02, ..default() },
@@ -31,10 +36,10 @@ fn setup(mut commands: Commands) {
         0.5 + u * 0.2
     }
 
-    let worm = worm::worm_builder(15, Vec3::ZERO, &mut commands, |time, index, side| {
+    let _worm = worm::worm_builder(15, Vec3::ZERO, &mut commands, |time, index, side| {
         default_control(3.0, 50.0, time, index, side)
     });
-    commands.entity(worm).insert(worm::CyclicalMapping);
+    // commands.entity(worm).insert(worm::CyclicalMapping);
 
     // worm::worm_builder(15, Vec3::new(0., -4., 0.), &mut commands, |time, index, side| {
     //     default_control(6.0, 250.0, time, index, side)
@@ -95,8 +100,29 @@ fn sync_edges(
     }
 }
 
-fn logger(positions: Query<(&Position, &Force), With<Log>>) {
-    for (pos, _) in positions.iter() {
+fn increment_time(mut time: ResMut<TimeTracker>) {
+    time.0 += 1.0 / 60.0;
+}
+
+fn log_output_and_exit(
+    time: Res<TimeTracker>,
+    mut exit: EventWriter<AppExit>,
+    positions: Query<&Position>
+) {
+    if time.0 >= 300.0 {
+        let mut total = Vec3::default();
+        let mut count = 0;
+        for pos in positions.iter() {
+            total += pos.now;
+            count += 1;
+        }
+        println!("Final {}: {}", time.0, total.x / count as f32);
+        exit.send(AppExit);
+    }
+}
+
+fn logger(positions: Query<&Position, With<Log>>) {
+    for pos in positions.iter() {
         println!("{:?}", pos.now);
     }
 }
@@ -120,9 +146,14 @@ fn main() {
             .add_system(draw_grid.before(sync_edges))
             .add_system(sync_points)
             .add_system(sync_edges);
+    } else {
+        app.add_plugins(MinimalPlugins);
     }
 
     app
+        .insert_resource(TimeTracker(0.0))
+        .add_system(increment_time)
+        .add_system(log_output_and_exit)
         .add_plugin(physics::PhysicsPlugin)
         .add_plugin(worm::WormPlugin)
         .add_startup_system(setup)

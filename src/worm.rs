@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{physics::*, brain::CTRNN};
+use crate::{physics::*, brain::CTRNN, TimeTracker};
 
 struct Segment<T> {
     center: T,
@@ -117,12 +117,12 @@ pub fn worm_builder(
 fn worm_control_system(
     worms: Query<(&WormController, &CTRNN), (Without<CyclicalMapping>, Without<RegionalMapping>)>,
     mut nodes: Query<(&Parent, &mut Spring, &Control)>,
-    time: Res<Time>
+    time: Res<TimeTracker>
 ) {
     for (parent, mut spring, control) in nodes.iter_mut() {
         if let Ok((worm, _ctrnn)) = worms.get(parent.get()) {
             spring.length = (worm.func)(
-                time.elapsed_seconds(),
+                time.0,
                 control.index as f32,
                 control.side
             );
@@ -161,7 +161,7 @@ fn regional_neuron_mapping(
 pub struct WormPlugin;
 impl Plugin for WormPlugin {
     fn build(&self, app: &mut App) {
-        // app.add_system(worm_control_system);
+        app.add_system(worm_control_system);
         app.add_system(cyclical_neuron_mapping);
         app.add_system(regional_neuron_mapping);
     }
