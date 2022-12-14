@@ -117,14 +117,14 @@ fn log_output_and_exit(
     mut exit: EventWriter<AppExit>,
     positions: Query<&Position>
 ) {
-    if time.0 >= 300.0 {
+    if time.0 >= 600.0 {
         let mut total = Vec3::default();
         let mut count = 0;
         for pos in positions.iter() {
             total += pos.now;
             count += 1;
         }
-        println!("Final {}: {}", time.0, total.x / count as f32);
+        println!("{}", total.x / count as f32);
         exit.send(AppExit);
     }
 }
