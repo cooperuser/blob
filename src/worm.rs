@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use bevy::prelude::*;
 
 use crate::{physics::*, brain::CTRNN, TimeTracker};
@@ -52,7 +54,7 @@ pub fn worm_builder(
         GlobalTransform::default(),
         VisibilityBundle::default(),
         WormController { func: controller },
-        CTRNN { ctrnn, voltages }
+        CTRNN { ctrnn, voltages, output_history: VecDeque::new(), flux_history: vec![] }
     )).with_children(|parent| {
         let drag_node = 0.0;
         let drag_edge = 1.0;

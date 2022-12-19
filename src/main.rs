@@ -5,16 +5,18 @@ use bevy::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
 use bevy_pancam::*;
 use bevy_prototype_debug_lines::*;
-use bevy_inspector_egui::WorldInspectorPlugin;
 
 mod physics;
 mod vector;
 mod worm;
 mod grid;
 mod brain;
+mod ui;
 
 use grid::draw_grid;
 use physics::*;
+
+pub const HISTORY_LENGTH: usize = 500;
 
 #[derive(Component)]
 struct Log;
@@ -44,10 +46,15 @@ fn setup(mut commands: Commands, worm_settings: Res<WormSettings>) {
     let worm = worm::worm_builder(15, Vec3::ZERO, &mut commands, |time, index, side| {
         default_control(3.0, 50.0, time, index, side)
     });
-    commands.entity(worm).insert(worm::FrequencyMapping {
-        frequency: worm_settings.frequency,
-        phase: worm_settings.phase,
-    });
+    // commands.entity(worm).insert(worm::FrequencyMapping {
+    //     frequency: worm_settings.frequency,
+    //     phase: worm_settings.phase,
+    // });
+    commands.entity(worm)
+        .insert(worm::CyclicalMapping)
+        .insert(brain::UpdateFlux)
+        .insert(brain::LogCTRNN)
+    ;
 
     // worm::worm_builder(15, Vec3::new(0., -4., 0.), &mut commands, |time, index, side| {
     //     default_control(6.0, 250.0, time, index, side)
@@ -162,9 +169,10 @@ fn main() {
                 ..default()
             }))
             .add_system(bevy::window::close_on_esc)
-            .add_plugin(WorldInspectorPlugin::new())
+            // .add_plugin(WorldInspectorPlugin::new())
             .add_plugin(PanCamPlugin::default())
             .add_plugin(DebugLinesPlugin::with_depth_test(true))
+            .add_plugin(ui::UIPlugin)
             .add_system(draw_grid.before(sync_edges))
             .add_system(sync_points)
             .add_system(sync_edges);
@@ -179,8 +187,8 @@ fn main() {
         .add_system(log_output_and_exit)
         .add_plugin(physics::PhysicsPlugin)
         .add_plugin(worm::WormPlugin)
+        .add_plugin(brain::BrainPlugin)
         .add_startup_system(setup)
-        .add_system(brain::ctrnn_update)
         .add_system(logger)
         .run();
 }
