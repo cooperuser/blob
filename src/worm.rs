@@ -4,7 +4,9 @@ use bevy::prelude::*;
 
 use crate::{physics::*, brain::CTRNN, TimeTracker};
 
+#[derive(Debug)]
 struct Segment<T> {
+    index: usize,
     center: T,
     left: T,
     right: T
@@ -22,7 +24,8 @@ pub struct FrequencyMapping {
 
 #[derive(Component)]
 pub struct WormController {
-    func: fn(f32, f32, f32) -> f32
+    func: fn(f32, f32, f32) -> f32,
+    segments: Vec<Segment<Entity>>
 }
 
 #[derive(Component)]
@@ -31,9 +34,13 @@ pub struct Control {
     pub side: f32
 }
 
+#[derive(Component)]
+pub struct Index(usize);
+
 fn gen_segments(num_segments: i32) -> Vec<Segment<Vec3>> {
     let offset = 0.5;
     (0..num_segments).map(|i| Segment {
+        index: i as usize,
         center: Vec3::new(-i as f32 - 1.0, 0.0, 0.0),
         left: Vec3::new(-i as f32 - offset, -offset, 0.0),
         right: Vec3::new(-i as f32 - offset, offset, 0.0),
@@ -49,12 +56,22 @@ pub fn worm_builder(
     let ctrnn = CTRNN::trained_ctrnn();
     let voltages = ctrnn.init_voltage();
 
-    commands.spawn((
+    let mut parts = vec![];
+    let parent_id = commands.spawn((
         Transform::default().with_translation(position),
         GlobalTransform::default(),
         VisibilityBundle::default(),
-        WormController { func: controller },
-        CTRNN { ctrnn, voltages, output_history: VecDeque::new(), flux_history: vec![] }
+        CTRNN {
+            ctrnn,
+            voltages,
+            output_history: VecDeque::new(),
+            flux_history: vec![],
+            activity_history: vec![],
+            fitness_history: vec![],
+            fitness_sum: vec![],
+            avg_fitness_sum: vec![]
+
+        }
     )).with_children(|parent| {
         let drag_node = 0.0;
         let drag_edge = 1.0;
@@ -68,11 +85,13 @@ pub fn worm_builder(
 
         let entities: Vec<Segment<Entity>> = gen_segments(num_segments as i32 + 1).iter()
             .map(|seg| Segment {
+                index: seg.index,
                 center: parent.spawn((
                     Position::new(seg.center * s),
                     Force::default(),
                     Mass(1.0),
-                    Drag(drag_node)
+                    Drag(drag_node),
+                    Index(seg.index)
                 )).id(),
                 left: parent.spawn((
                     Position::new(seg.left * s),
@@ -118,7 +137,15 @@ pub fn worm_builder(
                 Drag(drag_edge)
             ));
         }
-    }).id()
+
+        parts = entities;
+    }).id();
+
+    commands.entity(parent_id).insert(
+        WormController { func: controller, segments: parts }
+    );
+
+    parent_id
 }
 
 fn worm_control_system(
@@ -183,6 +210,28 @@ fn frequency_neuron_mapping(
     }
 }
 
+fn add_worm_segment(
+    mut worms: Query<(Entity, &mut WormController)>,
+    positions: Query<&Position>,
+    mut commands: Commands
+) {
+    if let Ok((entity, mut worm)) = worms.get_single_mut() {
+        let length = worm.segments.len();
+        let last = &worm.segments[length - 1].center;
+        let prev = &worm.segments[length - 2].center;
+        let last = positions.get(*last).unwrap().now;
+        let prev = positions.get(*prev).unwrap().now;
+        let diff = prev - last;
+        commands.entity(entity).with_children(|parent| {
+            // TODO: finish this
+        });
+
+        // commands.entity(entity).with_children(|parent| {
+
+        // });
+    }
+}
+
 pub struct WormPlugin;
 impl Plugin for WormPlugin {
     fn build(&self, app: &mut App) {
@@ -190,5 +239,6 @@ impl Plugin for WormPlugin {
         app.add_system(cyclical_neuron_mapping);
         app.add_system(regional_neuron_mapping);
         app.add_system(frequency_neuron_mapping);
+        app.add_system(add_worm_segment);
     }
 }
