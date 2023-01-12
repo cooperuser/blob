@@ -16,7 +16,11 @@ pub struct CTRNN {
     pub ctrnn: ctrnn::RLCTRNN,
     pub voltages: Vec<f64>,
     pub output_history: VecDeque<Vec<f64>>,
-    pub flux_history: Vec<Vec<VecDeque<(f64, f64)>>>
+    pub flux_history: Vec<Vec<VecDeque<(f64, f64)>>>,
+    pub activity_history: Vec<VecDeque<f64>>,
+    pub fitness_history: Vec<VecDeque<f64>>,
+    pub fitness_sum: Vec<f64>,
+    pub avg_fitness_sum: Vec<f64>,
 }
 
 impl CTRNN {
@@ -57,16 +61,43 @@ fn ctrnn_update(mut ctrnns: Query<&mut CTRNN>) {
 
 fn ctrnn_history(mut ctrnns: Query<&mut CTRNN>) {
     for mut ctrnn in ctrnns.iter_mut() {
+        let default: Vec<f64> = vec![];
         let outputs = ctrnn.get_outputs();
         ctrnn.output_history.push_back(outputs);
         if ctrnn.output_history.len() > HISTORY_LENGTH {
             ctrnn.output_history.pop_front();
         }
 
+        let len = ctrnn.output_history.len().max(2);
+        let outputs = ctrnn.output_history.get(len - 1).unwrap_or(&default).clone();
+        let last_outputs = ctrnn.output_history.get(len - 2).unwrap_or(&default).clone();
+
         for to in 0..ctrnn.ctrnn.count {
             if to >= ctrnn.flux_history.len() {
                 ctrnn.flux_history.push(vec![]);
+                ctrnn.activity_history.push(VecDeque::new());
+                ctrnn.fitness_history.push(VecDeque::new());
+                ctrnn.fitness_sum.push(0.0);
+                ctrnn.avg_fitness_sum.push(0.0);
             }
+            let output = outputs.get(to).unwrap_or(&0.0);
+            let last_output = last_outputs.get(to).unwrap_or(&0.0);
+            let activity = output - last_output;
+
+            ctrnn.activity_history[to].push_back(activity);
+            ctrnn.fitness_sum[to] += activity;
+            if ctrnn.activity_history[to].len() > HISTORY_LENGTH {
+                ctrnn.activity_history[to].pop_front();
+            }
+            let fitness = ctrnn.fitness_sum[to] / HISTORY_LENGTH as f64;
+
+            ctrnn.fitness_history[to].push_back(fitness);
+            ctrnn.avg_fitness_sum[to] += fitness;
+            if ctrnn.fitness_history[to].len() > HISTORY_LENGTH {
+                ctrnn.fitness_history[to].pop_front();
+            }
+            // let avg_fitness = ctrnn.avg_fitness_sum / ctrnn.fitness_history[to].len() as f64;
+
             for from in 0..ctrnn.ctrnn.count {
                 if from >= ctrnn.flux_history[to].len() {
                     ctrnn.flux_history[to].push(VecDeque::new());
@@ -84,10 +115,14 @@ fn ctrnn_history(mut ctrnns: Query<&mut CTRNN>) {
 
 fn fluctuator_update(mut ctrnns: Query<&mut CTRNN, With<UpdateFlux>>) {
     for mut ctrnn in ctrnns.iter_mut() {
-        for from in 0..ctrnn.ctrnn.count {
-            for to in 0..ctrnn.ctrnn.count {
+        println!("{:?}", ctrnn.fitness_sum);
+        println!("{:?}", ctrnn.avg_fitness_sum);
+        for to in 0..ctrnn.ctrnn.count {
+            let fitness = ctrnn.fitness_sum.get(to).unwrap_or(&0.0) / HISTORY_LENGTH as f64;
+            let avg_fitness = ctrnn.avg_fitness_sum.get(to).unwrap_or(&0.0) / HISTORY_LENGTH as f64;
+            for from in 0..ctrnn.ctrnn.count {
                 let f = &mut ctrnn.ctrnn.weights[to][from];
-                f.update(1.0 / 60.0, 0.0);
+                f.update(1.0 / 60.0, fitness - avg_fitness);
             }
         }
     }
@@ -105,7 +140,7 @@ impl Plugin for BrainPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(ctrnn_update);
         app.add_system(ctrnn_history);
-        app.add_system(fluctuator_update.before(ctrnn_update));
+        app.add_system(fluctuator_update.after(ctrnn_update));
         app.add_system(log_ctrnn);
     }
 }
