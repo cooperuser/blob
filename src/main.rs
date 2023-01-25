@@ -44,17 +44,18 @@ fn setup(mut commands: Commands, worm_settings: Res<WormSettings>) {
     }
 
     let worm = worm::worm_builder(15, Vec3::ZERO, &mut commands, |time, index, side| {
-        default_control(3.0, 50.0, time, index, side)
+        // default_control(3.0, 50.0, time, index, side)
+        default_control(6.0, 200.0, time, index, side)
     });
     // commands.entity(worm).insert(worm::FrequencyMapping {
     //     frequency: worm_settings.frequency,
     //     phase: worm_settings.phase,
     // });
-    commands.entity(worm)
-        .insert(worm::CyclicalMapping)
-        .insert(brain::UpdateFlux)
-        .insert(brain::LogCTRNN)
-    ;
+    // commands.entity(worm)
+        // .insert(worm::CyclicalMapping)
+        // .insert(brain::UpdateFlux)
+        // .insert(brain::LogCTRNN)
+    // ;
 
     // worm::worm_builder(15, Vec3::new(0., -4., 0.), &mut commands, |time, index, side| {
     //     default_control(6.0, 250.0, time, index, side)
@@ -80,7 +81,7 @@ fn sync_points(
             commands.entity(entity).insert(MaterialMesh2dBundle {
                 mesh: meshes.add(Mesh::from(shape::Circle::default())).into(),
                 transform: Transform::default().with_scale(Vec3::splat(0.2)),
-                material: materials.add(ColorMaterial::from(Color::WHITE)),
+                material: materials.add(ColorMaterial::from(Color::BLACK)),
                 ..default()
             });
         }
@@ -102,14 +103,14 @@ fn sync_edges(
             Err(_) => Vec3::ZERO
         };
         let color = match control {
-            _ => Color::WHITE
-            // Some(control) => match (control.index - 1) / 5 {
+            _ => Color::BLACK
+            // Some(control) => match (control.index - 1) / 3 {
             //     0 => Color::RED,
             //     1 => Color::GREEN,
             //     2 => Color::BLUE,
-            //     _ => Color::WHITE
+            //     _ => Color::BLACK
             // },
-            // None => Color::WHITE,
+            // None => Color::BLACK,
         };
         lines.line_colored(a, b, 0., color);
     }
@@ -160,7 +161,8 @@ fn main() {
     let mut app = App::new();
     let using_gui = !nogui;
     if using_gui {
-        app.insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
+        // app.insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
+        app.insert_resource(ClearColor(Color::rgb(1.0, 1.0, 1.0)))
             .add_plugins(DefaultPlugins.set(WindowPlugin {
                 window: WindowDescriptor {
                     fit_canvas_to_parent: true,
@@ -172,8 +174,8 @@ fn main() {
             // .add_plugin(WorldInspectorPlugin::new())
             .add_plugin(PanCamPlugin::default())
             .add_plugin(DebugLinesPlugin::with_depth_test(true))
-            .add_plugin(ui::UIPlugin)
-            .add_system(draw_grid.before(sync_edges))
+            // .add_plugin(ui::UIPlugin)
+            // .add_system(draw_grid.before(sync_edges))
             .add_system(sync_points)
             .add_system(sync_edges);
     } else {
