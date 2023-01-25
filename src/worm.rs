@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use crate::{physics::*, brain::CTRNN, TimeTracker};
 
 #[derive(Debug)]
-struct Segment<T> {
+pub struct Segment<T> {
     index: usize,
     center: T,
     left: T,
@@ -21,11 +21,13 @@ pub struct FrequencyMapping {
     pub frequency: f32,
     pub phase: f32
 }
+#[derive(Component)]
+pub struct Neurons(pub Vec<f32>);
 
 #[derive(Component)]
 pub struct WormController {
     func: fn(f32, f32, f32) -> f32,
-    segments: Vec<Segment<Entity>>
+    pub segments: Vec<Segment<Entity>>
 }
 
 #[derive(Component)]
@@ -70,8 +72,8 @@ pub fn worm_builder(
             fitness_history: vec![],
             fitness_sum: vec![],
             avg_fitness_sum: vec![]
-
-        }
+        },
+        Neurons(vec![0.15, 0.85, 0.5])
     )).with_children(|parent| {
         let drag_node = 0.0;
         let drag_edge = 1.0;
@@ -169,13 +171,14 @@ fn worm_control_system(
 }
 
 fn cyclical_neuron_mapping(
-    worms: Query<(&WormController, &CTRNN), With<CyclicalMapping>>,
+    worms: Query<(&WormController, &Neurons), With<CyclicalMapping>>,
     mut springs: Query<(&Parent, &mut Spring, &Control)>,
 ) {
     for (parent, mut spring, control) in springs.iter_mut() {
-        if let Ok((_worm, ctrnn)) = worms.get(parent.get()) {
-            let outputs = ctrnn.get_outputs();
-            let index = control.index / 2 % outputs.len() as i32;
+        if let Ok((_worm, neurons)) = worms.get(parent.get()) {
+            let outputs = neurons.0.clone();
+            let index = control.index - 1;
+            let index = index % outputs.len() as i32;
             let value = outputs[index as usize] as f32 - 0.5;
             spring.length = 0.5 + value * 0.5 * control.side;
         }
@@ -183,13 +186,16 @@ fn cyclical_neuron_mapping(
 }
 
 fn regional_neuron_mapping(
-    worms: Query<(&WormController, &CTRNN), With<RegionalMapping>>,
+    worms: Query<(&WormController, &Neurons), With<RegionalMapping>>,
     mut springs: Query<(&Parent, &mut Spring, &Control)>,
 ) {
     for (parent, mut spring, control) in springs.iter_mut() {
-        if let Ok((_worm, ctrnn)) = worms.get(parent.get()) {
-            let outputs = ctrnn.get_outputs();
-            let index = control.index / 8 % outputs.len() as i32;
+        if let Ok((worm, neurons)) = worms.get(parent.get()) {
+            let outputs = neurons.0.clone();
+            let len = worm.segments.len();
+            let index = control.index - 1;
+            // let index = index / 6 % outputs.len() as i32;
+            let index = index / (len / outputs.len()) as i32;
             let value = outputs[index as usize] as f32 - 0.5;
             spring.length = 0.5 + value * 0.5 * control.side;
         }

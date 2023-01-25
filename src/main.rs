@@ -15,6 +15,7 @@ mod ui;
 
 use grid::draw_grid;
 use physics::*;
+use worm::WormController;
 
 pub const HISTORY_LENGTH: usize = 500;
 
@@ -43,10 +44,11 @@ fn setup(mut commands: Commands, worm_settings: Res<WormSettings>) {
         0.5 + u * 0.2
     }
 
-    let worm = worm::worm_builder(15, Vec3::ZERO, &mut commands, |time, index, side| {
+    let worm = worm::worm_builder(12, Vec3::ZERO, &mut commands, |time, index, side| {
         // default_control(3.0, 50.0, time, index, side)
         default_control(6.0, 200.0, time, index, side)
     });
+    commands.entity(worm).insert(worm::CyclicalMapping);
     // commands.entity(worm).insert(worm::FrequencyMapping {
     //     frequency: worm_settings.frequency,
     //     phase: worm_settings.phase,
@@ -88,31 +90,66 @@ fn sync_points(
     }
 }
 
-fn sync_edges(
-    query: Query<(&Spring, Option<&worm::Control>)>,
+fn sync_edges_cyclical(
+    worms: Query<(&WormController, &worm::Neurons), With<worm::CyclicalMapping>>,
+    query: Query<(&Parent, &Spring, Option<&worm::Control>)>,
     transforms: Query<&GlobalTransform>,
     mut lines: ResMut<DebugLines>
 ) {
-    for (spring, control) in query.iter() {
-        let a = match transforms.get(spring.a) {
-            Ok(t) => t.translation(),
-            Err(_) => Vec3::ZERO
-        };
-        let b = match transforms.get(spring.b) {
-            Ok(t) => t.translation(),
-            Err(_) => Vec3::ZERO
-        };
-        let color = match control {
-            _ => Color::BLACK
-            // Some(control) => match (control.index - 1) / 3 {
-            //     0 => Color::RED,
-            //     1 => Color::GREEN,
-            //     2 => Color::BLUE,
-            //     _ => Color::BLACK
-            // },
-            // None => Color::BLACK,
-        };
-        lines.line_colored(a, b, 0., color);
+    for (parent, spring, control) in query.iter() {
+        if let Ok((worm, neurons)) = worms.get(parent.get()) {
+            let a = match transforms.get(spring.a) {
+                Ok(t) => t.translation(),
+                Err(_) => Vec3::ZERO
+            };
+            let b = match transforms.get(spring.b) {
+                Ok(t) => t.translation(),
+                Err(_) => Vec3::ZERO
+            };
+            let color = match control {
+                // _ => Color::BLACK
+                Some(control) => match (control.index - 1) % neurons.0.len() as i32 {
+                    0 => Color::RED,
+                    1 => Color::GREEN,
+                    2 => Color::BLUE,
+                    _ => Color::BLACK
+                },
+                None => Color::BLACK,
+            };
+            lines.line_colored(a, b, 0., color);
+        }
+    }
+}
+
+fn sync_edges_regional(
+    worms: Query<(&WormController, &worm::Neurons), With<worm::RegionalMapping>>,
+    query: Query<(&Parent, &Spring, Option<&worm::Control>)>,
+    transforms: Query<&GlobalTransform>,
+    mut lines: ResMut<DebugLines>
+) {
+    for (parent, spring, control) in query.iter() {
+        if let Ok((worm, neurons)) = worms.get(parent.get()) {
+            let a = match transforms.get(spring.a) {
+                Ok(t) => t.translation(),
+                Err(_) => Vec3::ZERO
+            };
+            let b = match transforms.get(spring.b) {
+                Ok(t) => t.translation(),
+                Err(_) => Vec3::ZERO
+            };
+            let len = worm.segments.len();
+            let color = match control {
+                // _ => Color::BLACK
+                Some(control) => match (control.index - 1) / (len / neurons.0.len()) as i32 {
+                    0 => Color::RED,
+                    1 => Color::GREEN,
+                    2 => Color::BLUE,
+                    _ => Color::BLACK
+                },
+                None => Color::BLACK,
+            };
+            lines.line_colored(a, b, 0., color);
+        }
     }
 }
 
@@ -177,7 +214,8 @@ fn main() {
             // .add_plugin(ui::UIPlugin)
             // .add_system(draw_grid.before(sync_edges))
             .add_system(sync_points)
-            .add_system(sync_edges);
+            .add_system(sync_edges_cyclical)
+            .add_system(sync_edges_regional);
     } else {
         app.add_plugins(MinimalPlugins);
     }
