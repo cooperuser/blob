@@ -16,8 +16,9 @@ def get_data() -> Dict[str, Dict[int, List[Datum]]]:
         if not match:
             exit()
         mapping = match.groups()[0]
-        neurons = match.groups()[1]
-        data[mapping] = {}
+        neurons = int(match.groups()[1])
+        if mapping not in data:
+            data[mapping] = {}
         data[mapping][neurons] = []
 
         with open(path, 'r', newline="") as csvfile:
