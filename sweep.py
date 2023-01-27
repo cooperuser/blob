@@ -1,24 +1,37 @@
 import subprocess
 import csv
+from math import floor, pi
 
 BIN = "./target/x86_64-pc-windows-msvc/release/blob.exe"
-FILE = "./data.csv"
 
-data = []
-max_params = {"fitness": 0}
-for frequency in range(10, 210):
-    for phase in range(2, 13):
-        x = subprocess.check_output([BIN, str(frequency), str(phase), "--nogui"])
-        fitness = float(x)
-        datum = {"frequency": frequency, "phase": phase, "fitness": fitness}
-        data.append(datum)
-        if datum["fitness"] > max_params["fitness"]:
-            max_params = datum
-        print(frequency, phase, fitness)
+def sweep(path, neurons):
+    data = []
+    max_params = {"fitness": 0}
+    frequency = 0.01
+    index = 0
+    while frequency <= 1.0:
+        phase = pi / 12
+        while phase <= pi:
+            x = subprocess.check_output([BIN, str(frequency), str(phase), str(neurons), "--nogui"])
+            fitness = float(x)
+            datum = {"frequency": frequency, "phase": phase, "fitness": fitness}
+            data.append(datum)
+            if datum["fitness"] > max_params["fitness"]:
+                max_params = datum
+            percent = index / (100 * 12)
+            print(floor(percent * 10000) / 100, ":", frequency, phase, fitness)
+            phase += pi / 12
+            index += 1
+        frequency += 0.01
 
-print(max_params)
+    print(max_params)
 
-with open(FILE, "w", newline="") as csvfile:
-    writer = csv.DictWriter(csvfile, fieldnames=["frequency", "phase", "fitness"])
-    writer.writeheader()
-    writer.writerows(data)
+    with open(path, "w", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=["frequency", "phase", "fitness"])
+        writer.writeheader()
+        writer.writerows(data)
+
+
+if __name__ == "__main__":
+    for n in range(3, 6):
+        sweep("./data/mapping-regional_neurons-" + str(n) + ".csv", n)
