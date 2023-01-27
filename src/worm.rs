@@ -1,8 +1,8 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, f32::consts::PI};
 
 use bevy::prelude::*;
 
-use crate::{physics::*, brain::CTRNN, TimeTracker};
+use crate::{physics::*, brain::CTRNN, TimeTracker, WormSettings};
 
 #[derive(Debug)]
 pub struct Segment<T> {
@@ -73,7 +73,7 @@ pub fn worm_builder(
             fitness_sum: vec![],
             avg_fitness_sum: vec![]
         },
-        Neurons(vec![0.15, 0.85, 0.5])
+        Neurons(vec![0.0; 6])
     )).with_children(|parent| {
         let drag_node = 0.0;
         let drag_edge = 1.0;
@@ -109,7 +109,7 @@ pub fn worm_builder(
                 )).id(),
             }).collect();
 
-        let soft = 7.5;
+        let soft = 2.0 * 7.5;
         let hard = 7.5;
         let skeleton = 7.5;
 
@@ -238,6 +238,24 @@ fn add_worm_segment(
     }
 }
 
+fn manually_adjust_neurons(
+    mut neurons: Query<&mut Neurons>,
+    time: Res<TimeTracker>,
+    settings: Res<WormSettings>
+) {
+    let t = time.0 * 2.0 * PI * settings.frequency;
+    // let t = 2.0 * PI * settings.frequency;
+    // let t = t / time.0;
+    for mut neurons in neurons.iter_mut() {
+        let map = |t: f32| -> f32 { t.sin() * 0.4 + 0.5 };
+        for n in 0..neurons.0.len() {
+            // let offset = settings.phase * n as f32 / neurons.0.len() as f32;
+            let offset = settings.phase * n as f32;
+            neurons.0[n] = map(t - offset);
+        }
+    }
+}
+
 pub struct WormPlugin;
 impl Plugin for WormPlugin {
     fn build(&self, app: &mut App) {
@@ -246,5 +264,6 @@ impl Plugin for WormPlugin {
         app.add_system(regional_neuron_mapping);
         app.add_system(frequency_neuron_mapping);
         app.add_system(add_worm_segment);
+        app.add_system(manually_adjust_neurons);
     }
 }

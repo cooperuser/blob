@@ -49,6 +49,7 @@ fn setup(mut commands: Commands, worm_settings: Res<WormSettings>) {
         default_control(6.0, 200.0, time, index, side)
     });
     commands.entity(worm).insert(worm::CyclicalMapping);
+    // commands.entity(worm).insert(worm::RegionalMapping);
     // commands.entity(worm).insert(worm::FrequencyMapping {
     //     frequency: worm_settings.frequency,
     //     phase: worm_settings.phase,
@@ -110,8 +111,11 @@ fn sync_edges_cyclical(
                 // _ => Color::BLACK
                 Some(control) => match (control.index - 1) % neurons.0.len() as i32 {
                     0 => Color::RED,
-                    1 => Color::GREEN,
-                    2 => Color::BLUE,
+                    1 => Color::ORANGE,
+                    2 => Color::YELLOW,
+                    3 => Color::GREEN,
+                    4 => Color::BLUE,
+                    5 => Color::PURPLE,
                     _ => Color::BLACK
                 },
                 None => Color::BLACK,
@@ -142,8 +146,11 @@ fn sync_edges_regional(
                 // _ => Color::BLACK
                 Some(control) => match (control.index - 1) / (len / neurons.0.len()) as i32 {
                     0 => Color::RED,
-                    1 => Color::GREEN,
-                    2 => Color::BLUE,
+                    1 => Color::ORANGE,
+                    2 => Color::YELLOW,
+                    3 => Color::GREEN,
+                    4 => Color::BLUE,
+                    5 => Color::PURPLE,
                     _ => Color::BLACK
                 },
                 None => Color::BLACK,
@@ -182,13 +189,15 @@ fn logger(positions: Query<&Position, With<Log>>) {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+    let frequency = 0.1;
     let frequency: f32 = match args.get(1) {
-        Some(num) => num.parse().unwrap_or(50.0),
-        None => 50.0,
+        Some(num) => num.parse().unwrap_or(frequency),
+        None => frequency,
     };
+    let phase = 2.0 * PI / 6.0;
     let phase: f32 = match args.get(2) {
-        Some(num) => num.parse().unwrap_or(3.0),
-        None => 3.0,
+        Some(num) => num.parse().unwrap_or(phase),
+        None => phase,
     };
     let nogui = match args.last() {
         Some(text) => if text == "--nogui" { true } else { false },
