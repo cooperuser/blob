@@ -28,7 +28,8 @@ pub struct TimeTracker(f32);
 #[derive(Resource, Default)]
 pub struct WormSettings {
     frequency: f32,
-    phase: f32
+    phase: f32,
+    neurons: usize
 }
 
 fn setup(mut commands: Commands, worm_settings: Res<WormSettings>) {
@@ -47,7 +48,7 @@ fn setup(mut commands: Commands, worm_settings: Res<WormSettings>) {
     let worm = worm::worm_builder(12, Vec3::ZERO, &mut commands, |time, index, side| {
         // default_control(3.0, 50.0, time, index, side)
         default_control(6.0, 200.0, time, index, side)
-    });
+    }, worm_settings.neurons);
     commands.entity(worm).insert(worm::CyclicalMapping);
     // commands.entity(worm).insert(worm::RegionalMapping);
     // commands.entity(worm).insert(worm::FrequencyMapping {
@@ -199,6 +200,11 @@ fn main() {
         Some(num) => num.parse().unwrap_or(phase),
         None => phase,
     };
+    let neurons = 6;
+    let neurons: usize = match args.get(3) {
+        Some(num) => num.parse().unwrap_or(neurons),
+        None => neurons,
+    };
     let nogui = match args.last() {
         Some(text) => if text == "--nogui" { true } else { false },
         None => false,
@@ -231,7 +237,7 @@ fn main() {
 
     app
         .insert_resource(TimeTracker(0.0))
-        .insert_resource(WormSettings { frequency, phase })
+        .insert_resource(WormSettings { frequency, phase, neurons: neurons })
         .add_system(increment_time)
         .add_system(log_output_and_exit)
         .add_plugin(physics::PhysicsPlugin)

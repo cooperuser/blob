@@ -53,7 +53,8 @@ pub fn worm_builder(
     num_segments: usize,
     position: Vec3,
     commands: &mut Commands,
-    controller: fn(f32, f32, f32) -> f32
+    controller: fn(f32, f32, f32) -> f32,
+    neurons: usize
 ) -> Entity {
     let ctrnn = CTRNN::trained_ctrnn();
     let voltages = ctrnn.init_voltage();
@@ -73,7 +74,7 @@ pub fn worm_builder(
             fitness_sum: vec![],
             avg_fitness_sum: vec![]
         },
-        Neurons(vec![0.0; 6])
+        Neurons(vec![0.0; neurons])
     )).with_children(|parent| {
         let drag_node = 0.0;
         let drag_edge = 1.0;
