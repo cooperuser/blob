@@ -16,7 +16,7 @@ def sweep(path, neurons):
             datum = {"frequency": frequency, "phase": phase, "fitness": fitness}
             data.append(datum)
             percent = index / (100 * 12)
-            print(floor(percent * 10000) / 100, ":", frequency, phase, fitness)
+            print(floor(percent * 10000) / 100, ":", neurons, frequency, phase, fitness)
             phase += pi / 12
             index += 1
         frequency += 0.01
@@ -28,5 +28,5 @@ def sweep(path, neurons):
 
 
 if __name__ == "__main__":
-    for n in range(3, 6):
+    for n in range(2, 5):
         sweep("./data/mapping-regional_neurons-" + str(n) + ".csv", n)
