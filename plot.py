@@ -5,6 +5,8 @@ from load import get_data, Datum
 from typing import List
 from multiple import multiple_formatter
 
+GLOBAL_RANGE = True
+
 data = get_data()
 mapping_dict = {
     "cyclical": 0,
@@ -18,7 +20,7 @@ neurons_dict = {
     6: 3
 }
 
-def heatmap(axis: Axes, data: List[Datum]):
+def heatmap(axis: Axes, data: List[Datum], fitness_range: List[float], pos: List[int]):
     frequency_range = [10.0, 0.0]
     phase_range = [10.0, 0.0]
     fitnesses = []
@@ -43,17 +45,30 @@ def heatmap(axis: Axes, data: List[Datum]):
     bottom = 0
     top = 1.0
     extent = [left, right, bottom, top]
-    axis.imshow(fitnesses, cmap="hot", interpolation="nearest", aspect="auto", extent=extent)
+    if GLOBAL_RANGE:
+        axis.imshow(fitnesses, cmap="hot", interpolation="nearest", aspect="auto", extent=extent, vmin=fitness_range[0], vmax=fitness_range[1])
+    else:
+        axis.imshow(fitnesses, cmap="hot", interpolation="nearest", aspect="auto", extent=extent)
     axis.set_aspect(1.0 / axis.get_data_ratio())
     axis.xaxis.set_major_locator(plt.MultipleLocator(pi / 2))
     axis.xaxis.set_minor_locator(plt.MultipleLocator(pi / 12))
     axis.xaxis.set_major_formatter(plt.FuncFormatter(multiple_formatter()))
+    axis.set_ylabel([2, 3, 4, 6][pos[1]])
+    axis.set_xlabel("cyclical" if not pos[0] else "regional")
 
-fig, axes = plt.subplots(nrows=4, ncols=2)
+fitness_range = [0.0, 0.0]
+for mapping in data.keys():
+    for neurons in data[mapping].keys():
+        for datum in data[mapping][neurons]:
+            fitness = datum["fitness"]
+            fitness_range[0] = min(fitness, fitness_range[0])
+            fitness_range[1] = max(fitness, fitness_range[1])
+        
+fig, axes = plt.subplots(nrows=4, ncols=2, sharex=True, sharey=True)
 for mapping in data.keys():
     for neurons in data[mapping].keys():
         m = mapping_dict[mapping]
         n = neurons_dict[neurons]
-        heatmap(axes[n, m], data[mapping][neurons])
+        heatmap(axes[n, m], data[mapping][neurons], fitness_range, [m, n])
 
 plt.show()
