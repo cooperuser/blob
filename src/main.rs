@@ -49,6 +49,7 @@ fn setup(mut commands: Commands, worm_settings: Res<WormSettings>) {
         // default_control(3.0, 50.0, time, index, side)
         default_control(6.0, 200.0, time, index, side)
     }, worm_settings.neurons);
+    commands.entity(worm).insert(worm::ManualControl);
     commands.entity(worm).insert(worm::CyclicalMapping);
     // commands.entity(worm).insert(worm::RegionalMapping);
     // commands.entity(worm).insert(worm::FrequencyMapping {

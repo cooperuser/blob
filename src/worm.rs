@@ -17,6 +17,8 @@ pub struct CyclicalMapping;
 #[derive(Component)]
 pub struct RegionalMapping;
 #[derive(Component)]
+pub struct ManualControl;
+#[derive(Component)]
 pub struct FrequencyMapping {
     pub frequency: f32,
     pub phase: f32
@@ -196,6 +198,7 @@ fn regional_neuron_mapping(
             let len = worm.segments.len();
             let index = control.index - 1;
             // let index = index / 6 % outputs.len() as i32;
+            // TODO: Fix this from panicking when len == 5
             let index = index / (len / outputs.len()) as i32;
             let value = outputs[index as usize] as f32 - 0.5;
             spring.length = 0.5 + value * 0.5 * control.side;
@@ -240,7 +243,7 @@ fn add_worm_segment(
 }
 
 fn manually_adjust_neurons(
-    mut neurons: Query<&mut Neurons>,
+    mut neurons: Query<&mut Neurons, With<ManualControl>>,
     time: Res<TimeTracker>,
     settings: Res<WormSettings>
 ) {
@@ -254,6 +257,14 @@ fn manually_adjust_neurons(
             let offset = settings.phase * n as f32;
             neurons.0[n] = map(t - offset);
         }
+    }
+}
+
+fn adjust_neurons(
+    mut neurons: Query<(&mut Neurons, &CTRNN), Without<ManualControl>>
+) {
+    for (mut neurons, ctrnn) in neurons.iter_mut() {
+        neurons.0 = ctrnn.get_outputs().iter().map(|e| *e as f32).collect();
     }
 }
 
