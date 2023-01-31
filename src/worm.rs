@@ -2,7 +2,7 @@ use std::{collections::VecDeque, f32::consts::PI};
 
 use bevy::prelude::*;
 
-use crate::{physics::*, brain::CTRNN, TimeTracker, WormSettings};
+use crate::{physics::*, brain::{CTRNN, UpdateFlux}, TimeTracker, WormSettings};
 
 #[derive(Debug)]
 pub struct Segment<T> {
@@ -76,6 +76,7 @@ pub fn worm_builder(
             fitness_sum: vec![],
             avg_fitness_sum: vec![]
         },
+        UpdateFlux,
         Neurons(vec![0.0; neurons])
     )).with_children(|parent| {
         let drag_node = 0.0;
@@ -277,5 +278,6 @@ impl Plugin for WormPlugin {
         app.add_system(frequency_neuron_mapping);
         app.add_system(add_worm_segment);
         app.add_system(manually_adjust_neurons);
+        app.add_system(adjust_neurons);
     }
 }
