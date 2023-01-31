@@ -3,7 +3,7 @@ use bevy_egui::egui::{self, plot::{Plot, Line, PlotPoints, PlotBounds}, Vec2};
 
 use crate::{brain::CTRNN, worm::Neurons};
 
-fn outputs_graph(mut egui_context: ResMut<bevy_egui::EguiContext>, ctrnns: Query<&CTRNN>) {
+fn phase_portrait(mut egui_context: ResMut<bevy_egui::EguiContext>, ctrnns: Query<&CTRNN>) {
     let default = vec![0.0, 0.0, 0.0];
     if let Ok(ctrnn) = ctrnns.get_single() {
         egui::Window::new("Outputs")
@@ -83,7 +83,7 @@ pub struct UIPlugin;
 impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(bevy_egui::EguiPlugin);
-        app.add_system(outputs_graph);
+        app.add_system(phase_portrait);
         app.add_system(flux_graph);
         app.add_system(outputs_graph);
     }
