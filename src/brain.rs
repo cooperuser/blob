@@ -87,16 +87,19 @@ fn ctrnn_history(mut ctrnns: Query<&mut CTRNN>) {
             ctrnn.activity_history[to].push_back(activity);
             ctrnn.fitness_sum[to] += activity;
             if ctrnn.activity_history[to].len() > HISTORY_LENGTH {
-                ctrnn.activity_history[to].pop_front();
+                if let Some(value) = ctrnn.activity_history[to].pop_front() {
+                    ctrnn.fitness_sum[to] -= value;
+                }
             }
             let fitness = ctrnn.fitness_sum[to] / HISTORY_LENGTH as f64;
 
             ctrnn.fitness_history[to].push_back(fitness);
             ctrnn.avg_fitness_sum[to] += fitness;
             if ctrnn.fitness_history[to].len() > HISTORY_LENGTH {
-                ctrnn.fitness_history[to].pop_front();
+                if let Some(value) = ctrnn.fitness_history[to].pop_front() {
+                    ctrnn.avg_fitness_sum[to] -= value
+                }
             }
-            // let avg_fitness = ctrnn.avg_fitness_sum / ctrnn.fitness_history[to].len() as f64;
 
             for from in 0..ctrnn.ctrnn.count {
                 if from >= ctrnn.flux_history[to].len() {
