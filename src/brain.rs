@@ -82,7 +82,7 @@ fn ctrnn_history(mut ctrnns: Query<&mut CTRNN>) {
             }
             let output = outputs.get(to).unwrap_or(&0.0);
             let last_output = last_outputs.get(to).unwrap_or(&0.0);
-            let activity = output - last_output;
+            let activity = (output - last_output).abs();
 
             ctrnn.activity_history[to].push_back(activity);
             ctrnn.fitness_sum[to] += activity;
