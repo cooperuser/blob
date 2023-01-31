@@ -143,17 +143,21 @@ fn sync_edges_regional(
                 Ok(t) => t.translation(),
                 Err(_) => Vec3::ZERO
             };
-            let len = worm.segments.len();
+            let len = (worm.segments.len() - 1) as f32;
+            let neurons = neurons.0.len() as f32;
             let color = match control {
-                // _ => Color::BLACK
-                Some(control) => match (control.index - 1) / (len / neurons.0.len()) as i32 {
-                    0 => Color::RED,
-                    1 => Color::ORANGE,
-                    2 => Color::YELLOW,
-                    3 => Color::GREEN,
-                    4 => Color::BLUE,
-                    5 => Color::PURPLE,
-                    _ => Color::BLACK
+                Some(control) => {
+                    let index = (control.index - 1) as f32;
+                    let value = index / len * neurons;
+                    match value.floor() as i32 {
+                        0 => Color::RED,
+                        1 => Color::ORANGE,
+                        2 => Color::YELLOW,
+                        3 => Color::GREEN,
+                        4 => Color::BLUE,
+                        5 => Color::PURPLE,
+                        _ => Color::BLACK
+                    }
                 },
                 None => Color::BLACK,
             };

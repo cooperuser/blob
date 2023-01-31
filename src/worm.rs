@@ -196,11 +196,10 @@ fn regional_neuron_mapping(
     for (parent, mut spring, control) in springs.iter_mut() {
         if let Ok((worm, neurons)) = worms.get(parent.get()) {
             let outputs = neurons.0.clone();
-            let len = worm.segments.len();
-            let index = control.index - 1;
-            // let index = index / 6 % outputs.len() as i32;
-            // TODO: Fix this from panicking when len == 5
-            let index = index / (len / outputs.len()) as i32;
+            let len = (worm.segments.len() - 1) as f32;
+            let neurons = outputs.len() as f32;
+            let index = (control.index - 1) as f32;
+            let index = (index / len * neurons).floor();
             let value = outputs[index as usize] as f32 - 0.5;
             spring.length = 0.5 + value * 0.5 * control.side;
         }
