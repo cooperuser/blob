@@ -118,8 +118,6 @@ fn ctrnn_history(mut ctrnns: Query<&mut CTRNN>) {
 
 fn fluctuator_update(mut ctrnns: Query<&mut CTRNN, With<UpdateFlux>>) {
     for mut ctrnn in ctrnns.iter_mut() {
-        println!("{:?}", ctrnn.fitness_sum);
-        println!("{:?}", ctrnn.avg_fitness_sum);
         for to in 0..ctrnn.ctrnn.count {
             let fitness = ctrnn.fitness_sum.get(to).unwrap_or(&0.0) / HISTORY_LENGTH as f64;
             let avg_fitness = ctrnn.avg_fitness_sum.get(to).unwrap_or(&0.0) / HISTORY_LENGTH as f64;
@@ -138,6 +136,12 @@ fn log_ctrnn(ctrnns: Query<&CTRNN, With<LogCTRNN>>) {
     }
 }
 
+// fn add_neuron(mut ctrnns: Query<&mut CTRNN>) {
+//     for mut ctrnn in ctrnns.iter_mut() {
+//         ctrnn.ctrnn.add_node();
+//     }
+// }
+
 pub struct BrainPlugin;
 impl Plugin for BrainPlugin {
     fn build(&self, app: &mut App) {
@@ -145,5 +149,6 @@ impl Plugin for BrainPlugin {
         app.add_system(ctrnn_history);
         app.add_system(fluctuator_update.after(ctrnn_update));
         app.add_system(log_ctrnn);
+        // app.add_system(add_neuron);
     }
 }

@@ -49,7 +49,7 @@ fn setup(mut commands: Commands, worm_settings: Res<WormSettings>) {
         // default_control(3.0, 50.0, time, index, side)
         default_control(6.0, 200.0, time, index, side)
     }, worm_settings.neurons);
-    commands.entity(worm).insert(worm::ManualControl);
+    // commands.entity(worm).insert(worm::ManualControl);
     commands.entity(worm).insert(worm::CyclicalMapping);
     // commands.entity(worm).insert(worm::RegionalMapping);
     // commands.entity(worm).insert(worm::FrequencyMapping {
@@ -227,7 +227,7 @@ fn main() {
             // .add_plugin(WorldInspectorPlugin::new())
             .add_plugin(PanCamPlugin::default())
             .add_plugin(DebugLinesPlugin::with_depth_test(true))
-            // .add_plugin(ui::UIPlugin)
+            .add_plugin(ui::UIPlugin)
             // .add_system(draw_grid.before(sync_edges))
             .add_system(sync_points)
             .add_system(sync_edges_cyclical)
@@ -238,7 +238,7 @@ fn main() {
 
     app
         .insert_resource(TimeTracker(0.0))
-        .insert_resource(WormSettings { frequency, phase, neurons: neurons })
+        .insert_resource(WormSettings { frequency, phase, neurons })
         .add_system(increment_time)
         .add_system(log_output_and_exit)
         .add_plugin(physics::PhysicsPlugin)
