@@ -19,6 +19,7 @@ use worm::WormController;
 
 pub const HISTORY_LENGTH: usize = 500;
 pub const DRAW_GRID: bool = false;
+pub const DRAW_UI: bool = false;
 
 #[derive(Component)]
 struct Log;
@@ -232,10 +233,10 @@ fn main() {
             // .add_plugin(WorldInspectorPlugin::new())
             .add_plugin(PanCamPlugin::default())
             .add_plugin(DebugLinesPlugin::with_depth_test(true))
-            .add_plugin(ui::UIPlugin)
             .add_system(sync_points)
             .add_system(sync_edges_cyclical)
             .add_system(sync_edges_regional);
+        if DRAW_UI { app.add_plugin(ui::UIPlugin); }
         if DRAW_GRID { app.add_system(draw_grid); }
     } else {
         app.add_plugins(MinimalPlugins);
