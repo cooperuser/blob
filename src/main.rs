@@ -95,12 +95,12 @@ fn sync_points(
 
 fn sync_edges_cyclical(
     worms: Query<(&WormController, &worm::Neurons), With<worm::CyclicalMapping>>,
-    query: Query<(&Parent, &Spring, Option<&worm::Control>)>,
+    query: Query<(&Parent, &Spring, Option<&worm::Control>), Without<worm::SpringHidden>>,
     transforms: Query<&GlobalTransform>,
     mut lines: ResMut<DebugLines>
 ) {
     for (parent, spring, control) in query.iter() {
-        if let Ok((worm, neurons)) = worms.get(parent.get()) {
+        if let Ok((_worm, neurons)) = worms.get(parent.get()) {
             let a = match transforms.get(spring.a) {
                 Ok(t) => t.translation(),
                 Err(_) => Vec3::ZERO
@@ -129,7 +129,7 @@ fn sync_edges_cyclical(
 
 fn sync_edges_regional(
     worms: Query<(&WormController, &worm::Neurons), With<worm::RegionalMapping>>,
-    query: Query<(&Parent, &Spring, Option<&worm::Control>)>,
+    query: Query<(&Parent, &Spring, Option<&worm::Control>), Without<worm::SpringHidden>>,
     transforms: Query<&GlobalTransform>,
     mut lines: ResMut<DebugLines>
 ) {
@@ -232,7 +232,7 @@ fn main() {
             .add_plugin(PanCamPlugin::default())
             .add_plugin(DebugLinesPlugin::with_depth_test(true))
             .add_plugin(ui::UIPlugin)
-            // .add_system(draw_grid.before(sync_edges))
+            .add_system(draw_grid)
             .add_system(sync_points)
             .add_system(sync_edges_cyclical)
             .add_system(sync_edges_regional);

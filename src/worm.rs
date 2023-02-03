@@ -8,9 +8,9 @@ const DRAG_NODE: f32 = 0.0;
 const DRAG_EDGE: f32 = 1.0;
 const SCALE: f32 = 0.5;
 
-const SPRING_SOFT: f32 = 2.0 * 7.5;
-const SPRING_HARD: f32 = 7.5;
-const SPRING_SKELETON: f32 = 7.5;
+const SPRING_SOFT: f32 = 5.0 * 7.5;
+const SPRING_HARD: f32 = 5.0 * 7.5;
+const SPRING_SKELETON: f32 = 5.0 * 7.5;
 
 #[derive(Debug)]
 pub struct Segment<T> {
@@ -33,6 +33,9 @@ pub struct FrequencyMapping {
 }
 #[derive(Component)]
 pub struct Neurons(pub Vec<f32>);
+
+#[derive(Component)]
+pub struct SpringHidden;
 
 #[derive(Component)]
 pub struct WormController {
@@ -133,6 +136,10 @@ pub fn worm_builder(
             parent.spawn(Spring { a: new.center, b: new.right, constant: SPRING_SOFT, length: 1.0 * SCALE });
             parent.spawn(Spring { a: new.left, b: old.center, constant: SPRING_SOFT, length: 1.0 * SCALE });
             parent.spawn(Spring { a: new.right, b: old.center, constant: SPRING_SOFT, length: 1.0 * SCALE });
+            parent.spawn((
+                Spring { a: new.left, b: new.right, constant: SPRING_SOFT, length: 2.0 * SCALE },
+                SpringHidden
+            ));
             parent.spawn((
                 Spring { a: new.left, b: old.left, constant: SPRING_HARD, length: 1.0 * SCALE },
                 Control { index: i as i32, side: -1.0 },
@@ -280,6 +287,10 @@ fn add_worm_segment(
                 parent.spawn(Spring { a: new.center, b: new.right, constant: SPRING_SOFT, length: 1.0 * SCALE });
                 parent.spawn(Spring { a: new.left, b: old.center, constant: SPRING_SOFT, length: 1.0 * SCALE });
                 parent.spawn(Spring { a: new.right, b: old.center, constant: SPRING_SOFT, length: 1.0 * SCALE });
+                parent.spawn((
+                    Spring { a: new.left, b: new.right, constant: SPRING_SOFT, length: 2.0 * SCALE },
+                    SpringHidden
+                ));
                 parent.spawn((
                     Spring { a: new.left, b: old.left, constant: SPRING_HARD, length: 1.0 * SCALE },
                     Control { index: seg.index as i32, side: -1.0 },
