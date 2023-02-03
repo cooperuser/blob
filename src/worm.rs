@@ -4,6 +4,14 @@ use bevy::prelude::*;
 
 use crate::{physics::*, brain::{CTRNN, UpdateFlux}, TimeTracker, WormSettings};
 
+const DRAG_NODE: f32 = 0.0;
+const DRAG_EDGE: f32 = 1.0;
+const SCALE: f32 = 0.5;
+
+const SPRING_SOFT: f32 = 2.0 * 7.5;
+const SPRING_HARD: f32 = 7.5;
+const SPRING_SKELETON: f32 = 7.5;
+
 #[derive(Debug)]
 pub struct Segment<T> {
     index: usize,
@@ -79,68 +87,61 @@ pub fn worm_builder(
         UpdateFlux,
         Neurons(vec![0.0; neurons])
     )).with_children(|parent| {
-        let drag_node = 0.0;
-        let drag_edge = 1.0;
-        let s = 0.5;
         let head = parent.spawn((
             Position::new(Vec3::ZERO),
             Force::default(),
             Mass(1.0),
-            Drag(drag_node)
+            Drag(DRAG_NODE)
         )).id();
 
         let entities: Vec<Segment<Entity>> = gen_segments(num_segments as i32 + 1).iter()
             .map(|seg| Segment {
                 index: seg.index,
                 center: parent.spawn((
-                    Position::new(seg.center * s),
+                    Position::new(seg.center * SCALE),
                     Force::default(),
                     Mass(1.0),
-                    Drag(drag_node),
+                    Drag(DRAG_NODE),
                     Index(seg.index)
                 )).id(),
                 left: parent.spawn((
-                    Position::new(seg.left * s),
+                    Position::new(seg.left * SCALE),
                     Force::default(),
                     Mass(1.0),
-                    Drag(drag_node)
+                    Drag(DRAG_NODE)
                 )).id(),
                 right: parent.spawn((
-                    Position::new(seg.right * s),
+                    Position::new(seg.right * SCALE),
                     Force::default(),
                     Mass(1.0),
-                    Drag(drag_node)
+                    Drag(DRAG_NODE)
                 )).id(),
             }).collect();
 
-        let soft = 2.0 * 7.5;
-        let hard = 7.5;
-        let skeleton = 7.5;
-
-        parent.spawn(Spring { a: entities[0].left, b: head, constant: soft, length: 1.0 * s });
-        parent.spawn(Spring { a: entities[0].center, b: head, constant: skeleton, length: 1.0 * s });
-        parent.spawn(Spring { a: entities[0].right, b: head, constant: soft, length: 1.0 * s });
-        parent.spawn(Spring { a: entities[0].center, b: entities[0].left, constant: soft, length: 1.0 * s });
-        parent.spawn(Spring { a: entities[0].center, b: entities[0].right, constant: soft, length: 1.0 * s });
+        parent.spawn(Spring { a: entities[0].left, b: head, constant: SPRING_SOFT, length: 1.0 * SCALE });
+        parent.spawn(Spring { a: entities[0].center, b: head, constant: SPRING_SKELETON, length: 1.0 * SCALE });
+        parent.spawn(Spring { a: entities[0].right, b: head, constant: SPRING_SOFT, length: 1.0 * SCALE });
+        parent.spawn(Spring { a: entities[0].center, b: entities[0].left, constant: SPRING_SOFT, length: 1.0 * SCALE });
+        parent.spawn(Spring { a: entities[0].center, b: entities[0].right, constant: SPRING_SOFT, length: 1.0 * SCALE });
 
         for i in 1..num_segments + 1 {
             let new = &entities[i as usize];
             let old = &entities[(i - 1) as usize];
 
-            parent.spawn(Spring { a: new.center, b: old.center, constant: skeleton, length: 1.0 * s });
-            parent.spawn(Spring { a: new.center, b: new.left, constant: soft, length: 1.0 * s });
-            parent.spawn(Spring { a: new.center, b: new.right, constant: soft, length: 1.0 * s });
-            parent.spawn(Spring { a: new.left, b: old.center, constant: soft, length: 1.0 * s });
-            parent.spawn(Spring { a: new.right, b: old.center, constant: soft, length: 1.0 * s });
+            parent.spawn(Spring { a: new.center, b: old.center, constant: SPRING_SKELETON, length: 1.0 * SCALE });
+            parent.spawn(Spring { a: new.center, b: new.left, constant: SPRING_SOFT, length: 1.0 * SCALE });
+            parent.spawn(Spring { a: new.center, b: new.right, constant: SPRING_SOFT, length: 1.0 * SCALE });
+            parent.spawn(Spring { a: new.left, b: old.center, constant: SPRING_SOFT, length: 1.0 * SCALE });
+            parent.spawn(Spring { a: new.right, b: old.center, constant: SPRING_SOFT, length: 1.0 * SCALE });
             parent.spawn((
-                Spring { a: new.left, b: old.left, constant: hard, length: 1.0 * s },
+                Spring { a: new.left, b: old.left, constant: SPRING_HARD, length: 1.0 * SCALE },
                 Control { index: i as i32, side: -1.0 },
-                Drag(drag_edge)
+                Drag(DRAG_EDGE)
             ));
             parent.spawn((
-                Spring { a: new.right, b: old.right, constant: hard, length: 1.0 * s },
+                Spring { a: new.right, b: old.right, constant: SPRING_HARD, length: 1.0 * SCALE },
                 Control { index: i as i32, side: 1.0 },
-                Drag(drag_edge)
+                Drag(DRAG_EDGE)
             ));
         }
 
@@ -222,23 +223,77 @@ fn frequency_neuron_mapping(
 
 fn add_worm_segment(
     mut worms: Query<(Entity, &mut WormController)>,
-    positions: Query<&Position>,
-    mut commands: Commands
+    positions: Query<(Entity, &Position)>,
+    mut commands: Commands,
+    keys: Res<Input<KeyCode>>
 ) {
-    if let Ok((entity, mut worm)) = worms.get_single_mut() {
-        let length = worm.segments.len();
-        let last = &worm.segments[length - 1].center;
-        let prev = &worm.segments[length - 2].center;
-        let last = positions.get(*last).unwrap().now;
-        let prev = positions.get(*prev).unwrap().now;
-        let diff = prev - last;
-        commands.entity(entity).with_children(|parent| {
-            // TODO: finish this
-        });
+    if keys.just_pressed(KeyCode::Space) {
+        if let Ok((entity, mut worm)) = worms.get_single_mut() {
+            let length = worm.segments.len();
+            let last = &worm.segments[length - 1].center;
+            let prev = &worm.segments[length - 2].center;
+            let last = positions.get(*last).unwrap().1.now;
+            let prev = positions.get(*prev).unwrap().1.now;
+            let diff = prev - last;
+            commands.entity(entity).with_children(|parent| {
+                let center = last - diff;
+                let half = last - diff * 0.5;
+                let perp = diff.cross(Vec3::new(0.0, 0.0, 1.0)) / 1.0;
+                let seg = Segment {
+                    index: length,
+                    center,
+                    left: Vec3::new(half.x + perp.x, half.y + perp.y, 0.0),
+                    right: Vec3::new(half.x - perp.x, half.y - perp.y, 0.0),
+                };
+                let old = &worm.segments[length - 1];
+                let old = Segment {
+                    index: old.index,
+                    center: positions.get(old.center).unwrap().0,
+                    left: positions.get(old.left).unwrap().0,
+                    right: positions.get(old.right).unwrap().0
+                };
+                let new = Segment {
+                    index: seg.index,
+                    center: parent.spawn((
+                        Position::new(seg.center),
+                        Force::default(),
+                        Mass(1.0),
+                        Drag(DRAG_NODE),
+                        Index(seg.index)
+                    )).id(),
+                    left: parent.spawn((
+                        Position::new(seg.left),
+                        Force::default(),
+                        Mass(1.0),
+                        Drag(DRAG_NODE),
+                    )).id(),
+                    right: parent.spawn((
+                        Position::new(seg.right),
+                        Force::default(),
+                        Mass(1.0),
+                        Drag(DRAG_NODE),
+                    )).id()
+                };
 
-        // commands.entity(entity).with_children(|parent| {
+                parent.spawn(Spring { a: new.center, b: old.center, constant: SPRING_SKELETON, length: 1.0 * SCALE });
+                parent.spawn(Spring { a: new.center, b: new.left, constant: SPRING_SOFT, length: 1.0 * SCALE });
+                parent.spawn(Spring { a: new.center, b: new.right, constant: SPRING_SOFT, length: 1.0 * SCALE });
+                parent.spawn(Spring { a: new.left, b: old.center, constant: SPRING_SOFT, length: 1.0 * SCALE });
+                parent.spawn(Spring { a: new.right, b: old.center, constant: SPRING_SOFT, length: 1.0 * SCALE });
+                parent.spawn((
+                    Spring { a: new.left, b: old.left, constant: SPRING_HARD, length: 1.0 * SCALE },
+                    Control { index: seg.index as i32, side: -1.0 },
+                    Drag(DRAG_EDGE)
+                ));
+                parent.spawn((
+                    Spring { a: new.right, b: old.right, constant: SPRING_HARD, length: 1.0 * SCALE },
+                    Control { index: seg.index as i32, side: 1.0 },
+                    Drag(DRAG_EDGE)
+                ));
 
-        // });
+                worm.segments.push(new);
+            });
+        }
     }
 }
 
@@ -248,12 +303,9 @@ fn manually_adjust_neurons(
     settings: Res<WormSettings>
 ) {
     let t = time.0 * 2.0 * PI * settings.frequency;
-    // let t = 2.0 * PI * settings.frequency;
-    // let t = t / time.0;
     for mut neurons in neurons.iter_mut() {
         let map = |t: f32| -> f32 { t.sin() * 0.4 + 0.5 };
         for n in 0..neurons.0.len() {
-            // let offset = settings.phase * n as f32 / neurons.0.len() as f32;
             let offset = settings.phase * n as f32;
             neurons.0[n] = map(t - offset);
         }
