@@ -136,11 +136,18 @@ fn log_ctrnn(ctrnns: Query<&CTRNN, With<LogCTRNN>>) {
     }
 }
 
-// fn add_neuron(mut ctrnns: Query<&mut CTRNN>) {
-//     for mut ctrnn in ctrnns.iter_mut() {
-//         ctrnn.ctrnn.add_node();
-//     }
-// }
+fn add_neuron(
+    mut ctrnns: Query<&mut CTRNN>,
+    mut adder: ResMut<crate::Adder>
+) {
+    if adder.neuron > 0 {
+        adder.neuron -= 1;
+        for mut ctrnn in ctrnns.iter_mut() {
+            ctrnn.ctrnn.add_node();
+            ctrnn.voltages.push(0.0);
+        }
+    }
+}
 
 pub struct BrainPlugin;
 impl Plugin for BrainPlugin {
@@ -149,6 +156,6 @@ impl Plugin for BrainPlugin {
         app.add_system(ctrnn_history);
         app.add_system(fluctuator_update.after(ctrnn_update));
         app.add_system(log_ctrnn);
-        // app.add_system(add_neuron);
+        app.add_system(add_neuron);
     }
 }

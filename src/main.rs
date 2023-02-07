@@ -19,8 +19,9 @@ use worm::WormController;
 
 pub const HISTORY_LENGTH: usize = 500;
 pub const DRAW_GRID: bool = false;
-pub const DRAW_UI: bool = false;
-pub const EDGE_COLORS: bool = true;
+pub const DRAW_UI: bool = true;
+pub const EDGE_COLORS: bool = false;
+pub const LOG_EVERY_FRAME: bool = false;
 
 #[derive(Component)]
 struct Log;
@@ -33,6 +34,12 @@ pub struct WormSettings {
     frequency: f32,
     phase: f32,
     neurons: usize
+}
+
+#[derive(Resource, Default)]
+pub struct Adder {
+    segment: usize,
+    neuron: usize
 }
 
 fn setup(mut commands: Commands, worm_settings: Res<WormSettings>) {
@@ -183,20 +190,47 @@ fn log_output_and_exit(
     positions: Query<&Position>
 ) {
     if time.0 >= 600.0 {
-        let mut total = Vec3::default();
-        let mut count = 0;
-        for pos in positions.iter() {
-            total += pos.now;
-            count += 1;
+        if !LOG_EVERY_FRAME {
+            let mut total = Vec3::default();
+            let mut count = 0;
+            for pos in positions.iter() {
+                total += pos.now;
+                count += 1;
+            }
+            println!("{}", total.x / count as f32);
         }
-        println!("{}", total.x / count as f32);
         exit.send(AppExit);
     }
+}
+
+fn log_output(
+    time: Res<TimeTracker>,
+    positions: Query<&Position>
+) {
+    let mut total = Vec3::default();
+    let mut count = 0;
+    for pos in positions.iter() {
+        total += pos.now;
+        count += 1;
+    }
+    println!("{},{}", time.0, total.x / count as f32);
 }
 
 fn logger(positions: Query<&Position, With<Log>>) {
     for pos in positions.iter() {
         println!("{:?}", pos.now);
+    }
+}
+
+pub fn adder_on_keypress(
+    mut adder: ResMut<crate::Adder>,
+    keys: Res<Input<KeyCode>>
+) {
+    if keys.just_pressed(KeyCode::Space) {
+        adder.segment += 1;
+    }
+    if keys.just_pressed(KeyCode::N) {
+        adder.neuron += 1;
     }
 }
 
@@ -240,7 +274,8 @@ fn main() {
             .add_plugin(DebugLinesPlugin::with_depth_test(true))
             .add_system(sync_points)
             .add_system(sync_edges_cyclical)
-            .add_system(sync_edges_regional);
+            .add_system(sync_edges_regional)
+            .add_system(adder_on_keypress);
         if DRAW_UI { app.add_plugin(ui::UIPlugin); }
         if DRAW_GRID { app.add_system(draw_grid); }
     } else {
@@ -249,6 +284,7 @@ fn main() {
 
     app
         .insert_resource(TimeTracker(0.0))
+        .insert_resource(Adder::default())
         .insert_resource(WormSettings { frequency, phase, neurons })
         .add_system(increment_time)
         .add_system(log_output_and_exit)
@@ -256,6 +292,12 @@ fn main() {
         .add_plugin(worm::WormPlugin)
         .add_plugin(brain::BrainPlugin)
         .add_startup_system(setup)
-        .add_system(logger)
+        .add_system(logger);
+
+    if LOG_EVERY_FRAME {
+        app.add_system(log_output);
+    }
+
+    app
         .run();
 }

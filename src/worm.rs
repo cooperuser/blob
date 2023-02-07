@@ -232,9 +232,10 @@ fn add_worm_segment(
     mut worms: Query<(Entity, &mut WormController)>,
     positions: Query<(Entity, &Position)>,
     mut commands: Commands,
-    keys: Res<Input<KeyCode>>
+    mut adder: ResMut<crate::Adder>,
 ) {
-    if keys.just_pressed(KeyCode::Space) {
+    if adder.segment > 0 {
+        adder.segment -= 1;
         if let Ok((entity, mut worm)) = worms.get_single_mut() {
             let length = worm.segments.len();
             let last = &worm.segments[length - 1].center;
