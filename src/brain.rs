@@ -45,8 +45,6 @@ impl CTRNN {
             }
         }
 
-        ctrnn.add_node();
-
         ctrnn
     }
 }

@@ -21,7 +21,7 @@ pub const HISTORY_LENGTH: usize = 500;
 pub const DRAW_GRID: bool = false;
 pub const DRAW_UI: bool = true;
 pub const EDGE_COLORS: bool = false;
-pub const LOG_EVERY_FRAME: bool = false;
+pub const LOG_EVERY_FRAME: bool = true;
 
 #[derive(Component)]
 struct Log;
