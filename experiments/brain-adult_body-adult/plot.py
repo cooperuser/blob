@@ -3,7 +3,7 @@ from load import get_data
 
 data = get_data()
 
-for run in data:
+for run in data["cyclical"]:
     plt.plot([d["position"] for d in run])
 
 plt.xticks([i * 6000 for i in range(7)], [i * 100 for i in range(7)])
