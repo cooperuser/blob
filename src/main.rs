@@ -28,6 +28,8 @@ struct Log;
 
 #[derive(Resource, Default)]
 pub struct TimeTracker(f32);
+#[derive(Resource, Default)]
+pub struct TimeTrackerInt(i32);
 
 #[derive(Resource, Default)]
 pub struct WormSettings {
@@ -213,7 +215,8 @@ fn log_output(
         total += pos.now;
         count += 1;
     }
-    println!("{},{}", time.0, total.x / count as f32);
+    total /= count as f32;
+    println!("{},{}", time.0, total.x.hypot(total.y));
 }
 
 fn logger(positions: Query<&Position, With<Log>>) {
@@ -230,6 +233,19 @@ pub fn adder_on_keypress(
         adder.segment += 1;
     }
     if keys.just_pressed(KeyCode::N) {
+        adder.neuron += 1;
+    }
+}
+
+pub fn devo_timer(
+    mut adder: ResMut<crate::Adder>,
+    mut time_int: ResMut<TimeTrackerInt>,
+    time: Res<TimeTracker>
+) {
+    let time = time.0 as i32;
+    let t = time_int.0;
+    if time > t + 60 {
+        time_int.0 += 60;
         adder.neuron += 1;
     }
 }
@@ -284,6 +300,7 @@ fn main() {
 
     app
         .insert_resource(TimeTracker(0.0))
+        .insert_resource(TimeTrackerInt(0))
         .insert_resource(Adder::default())
         .insert_resource(WormSettings { frequency, phase, neurons })
         .add_system(increment_time)
@@ -291,6 +308,7 @@ fn main() {
         .add_plugin(physics::PhysicsPlugin)
         .add_plugin(worm::WormPlugin)
         .add_plugin(brain::BrainPlugin)
+        .add_system(devo_timer)
         .add_startup_system(setup)
         .add_system(logger);
 

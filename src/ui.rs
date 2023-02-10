@@ -28,7 +28,7 @@ fn phase_portrait(mut egui_context: ResMut<bevy_egui::EguiContext>, ctrnns: Quer
 
 fn flux_graph(mut egui_context: ResMut<bevy_egui::EguiContext>, ctrnns: Query<&CTRNN>) {
     let default = (0.0, 0.0);
-    let weight = (2, 2);
+    let weight = (1, 1);
     if let Ok(ctrnn) = ctrnns.get_single() {
         egui::Window::new("Flux")
             .default_size(Vec2::new(300.0, 300.0))
