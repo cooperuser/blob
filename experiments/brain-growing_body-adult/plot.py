@@ -13,7 +13,7 @@ for run in data["regional"]:
 axes[0].set_ylabel("cyclical")
 axes[1].set_ylabel("regional")
 
-plt.xticks([i * 3600 for i in range(11)], [i + 2 for i in range(11)])
-plt.xlabel("# of neurons")
+plt.xticks([i * 3600 for i in range(11)], [i for i in range(11)])
+plt.xlabel("time (minutes)")
 # plt.ylabel("displacement")
 plt.show()
