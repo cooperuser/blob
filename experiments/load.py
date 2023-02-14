@@ -2,6 +2,7 @@ from os import listdir
 from os.path import isfile, join
 import csv
 from typing import Dict, List, Tuple
+from tqdm import tqdm
 
 Datum = Dict[str, float]
 
@@ -13,7 +14,7 @@ def get_data_single(dir) -> Dict[str, List[List[Datum]]]:
         "regional": []
     }
 
-    for file in files:
+    for file in tqdm(files):
         path = join(data_dir, file)
         type = "regional" if file[0] == 'r' else "cyclical"
         with open(path, "r", newline="") as csvfile:
