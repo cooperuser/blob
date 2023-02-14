@@ -29,6 +29,8 @@ struct Log;
 #[derive(Resource, Default)]
 pub struct TimeTracker(f32);
 #[derive(Resource, Default)]
+pub struct TimeTracker2(f32);
+#[derive(Resource, Default)]
 pub struct TimeTrackerInt(i32);
 
 #[derive(Resource, Default)]
@@ -207,8 +209,13 @@ fn log_output_and_exit(
 
 fn log_output(
     time: Res<TimeTracker>,
+    mut time_t: ResMut<TimeTracker2>,
     positions: Query<&Position>
 ) {
+    let t = (time.0 * 10.0).floor() / 10.0;
+    if t <= time_t.0 { return }
+    time_t.0 = t;
+
     let mut total = Vec3::default();
     let mut count = 0;
     for pos in positions.iter() {
@@ -216,7 +223,7 @@ fn log_output(
         count += 1;
     }
     total /= count as f32;
-    println!("{},{}", time.0, total.x.hypot(total.y));
+    println!("{},{}", t, total.x.hypot(total.y));
 }
 
 fn logger(positions: Query<&Position, With<Log>>) {
@@ -300,6 +307,7 @@ fn main() {
 
     app
         .insert_resource(TimeTracker(0.0))
+        .insert_resource(TimeTracker2(-1.0))
         .insert_resource(TimeTrackerInt(0))
         .insert_resource(Adder::default())
         .insert_resource(WormSettings { frequency, phase, neurons })
