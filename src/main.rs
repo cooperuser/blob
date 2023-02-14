@@ -43,7 +43,8 @@ pub struct InitialPosition(Vec3);
 pub struct WormSettings {
     frequency: f32,
     phase: f32,
-    neurons: usize
+    neurons: usize,
+    segments: usize
 }
 
 #[derive(Resource, Default)]
@@ -65,7 +66,7 @@ fn setup(mut commands: Commands, worm_settings: Res<WormSettings>) {
         0.5 + u * 0.2
     }
 
-    let len = if DEVO_BODY { 2 } else { 12 };
+    let len = if DEVO_BODY { worm_settings.segments } else { 12 };
     let worm = worm::worm_builder(len, Vec3::ZERO, &mut commands, |time, index, side| {
         // default_control(3.0, 50.0, time, index, side)
         default_control(6.0, 200.0, time, index, side)
@@ -304,6 +305,11 @@ fn main() {
         Some(num) => num.parse().unwrap_or(neurons),
         None => neurons,
     };
+    let segments = 2;
+    let segments: usize = match args.get(4) {
+        Some(num) => num.parse().unwrap_or(segments),
+        None => segments,
+    };
     let nogui = match args.last() {
         Some(text) => if text == "--nogui" { true } else { false },
         None => false,
@@ -341,7 +347,7 @@ fn main() {
         .insert_resource(TimeTrackerInt(0))
         .insert_resource(InitialPosition(Vec3::ZERO))
         .insert_resource(Adder::default())
-        .insert_resource(WormSettings { frequency, phase, neurons })
+        .insert_resource(WormSettings { frequency, phase, neurons, segments })
         .add_system(increment_time)
         .add_system(log_output_and_exit)
         .add_plugin(physics::PhysicsPlugin)
