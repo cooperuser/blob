@@ -36,6 +36,8 @@ pub struct TimeTracker(f32);
 pub struct TimeTracker2(f32);
 #[derive(Resource, Default)]
 pub struct TimeTrackerInt(i32);
+#[derive(Resource, Default)]
+pub struct InitialPosition(Vec3);
 
 #[derive(Resource, Default)]
 pub struct WormSettings {
@@ -218,6 +220,7 @@ fn log_output_and_exit(
 fn log_output(
     time: Res<TimeTracker>,
     mut time_t: ResMut<TimeTracker2>,
+    initial: Res<InitialPosition>,
     positions: Query<&Position>
 ) {
     let t = (time.0 * 10.0).floor() / 10.0;
@@ -231,6 +234,7 @@ fn log_output(
         count += 1;
     }
     total /= count as f32;
+    total -= initial.0;
     println!("{},{}", t, total.x.hypot(total.y));
 }
 
@@ -263,6 +267,23 @@ pub fn devo_timer(
         time_int.0 += 60;
         if DEVO_BRAIN { adder.neuron += 1; }
         if DEVO_BODY { adder.segment += 1; }
+    }
+}
+
+pub fn set_initial_pos(
+    // time: Res<TimeTracker2>,
+    mut pos: ResMut<InitialPosition>,
+    positions: Query<&Position>
+) {
+    if pos.0 == Vec3::ZERO {
+        let mut total = Vec3::default();
+        let mut count = 0;
+        for pos in positions.iter() {
+            total += pos.now;
+            count += 1;
+        }
+        total /= count as f32;
+        pos.0 = total;
     }
 }
 
@@ -318,6 +339,7 @@ fn main() {
         .insert_resource(TimeTracker(0.0))
         .insert_resource(TimeTracker2(-1.0))
         .insert_resource(TimeTrackerInt(0))
+        .insert_resource(InitialPosition(Vec3::ZERO))
         .insert_resource(Adder::default())
         .insert_resource(WormSettings { frequency, phase, neurons })
         .add_system(increment_time)
@@ -326,6 +348,7 @@ fn main() {
         .add_plugin(worm::WormPlugin)
         .add_plugin(brain::BrainPlugin)
         .add_system(devo_timer)
+        .add_system(set_initial_pos)
         .add_startup_system(setup)
         .add_system(logger);
 
