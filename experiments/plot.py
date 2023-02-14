@@ -50,7 +50,7 @@ axes[1].set_ylabel("regional")
 
 axes[0].legend()
 
-plt.xticks([i * 3600 for i in range(11)], [i for i in range(11)])
+plt.xticks([i * 600 for i in range(11)], [i for i in range(11)])
 plt.xlabel("time (minutes)")
 # plt.ylabel("displacement")
 plt.show()
