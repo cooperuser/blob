@@ -23,6 +23,10 @@ pub const DRAW_UI: bool = true;
 pub const EDGE_COLORS: bool = false;
 pub const LOG_EVERY_FRAME: bool = true;
 
+pub const DEVO_BRAIN: bool = false;
+pub const DEVO_BODY: bool = false;
+pub const MAPPING_CYCLICAL: bool = true;
+
 #[derive(Component)]
 struct Log;
 
@@ -59,13 +63,17 @@ fn setup(mut commands: Commands, worm_settings: Res<WormSettings>) {
         0.5 + u * 0.2
     }
 
-    let worm = worm::worm_builder(12, Vec3::ZERO, &mut commands, |time, index, side| {
+    let len = if DEVO_BODY { 2 } else { 12 };
+    let worm = worm::worm_builder(len, Vec3::ZERO, &mut commands, |time, index, side| {
         // default_control(3.0, 50.0, time, index, side)
         default_control(6.0, 200.0, time, index, side)
     }, worm_settings.neurons);
     // commands.entity(worm).insert(worm::ManualControl);
-    commands.entity(worm).insert(worm::CyclicalMapping);
-    // commands.entity(worm).insert(worm::RegionalMapping);
+    if MAPPING_CYCLICAL {
+        commands.entity(worm).insert(worm::CyclicalMapping);
+    } else {
+        commands.entity(worm).insert(worm::RegionalMapping);
+    }
     // commands.entity(worm).insert(worm::FrequencyMapping {
     //     frequency: worm_settings.frequency,
     //     phase: worm_settings.phase,
@@ -253,7 +261,8 @@ pub fn devo_timer(
     let t = time_int.0;
     if time > t + 60 {
         time_int.0 += 60;
-        adder.neuron += 1;
+        if DEVO_BRAIN { adder.neuron += 1; }
+        if DEVO_BODY { adder.segment += 1; }
     }
 }
 

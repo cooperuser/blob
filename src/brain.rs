@@ -45,6 +45,10 @@ impl CTRNN {
             }
         }
 
+        if !crate::DEVO_BRAIN {
+            for _ in 0..8 { ctrnn.add_node(); }
+        }
+
         ctrnn
     }
 }
