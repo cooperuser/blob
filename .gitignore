@@ -3,4 +3,5 @@ Cargo.lock
 __pycache__/
 .xwin-cache/
 data/
+data_old/
 data_10/

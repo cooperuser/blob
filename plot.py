@@ -13,11 +13,11 @@ mapping_dict = {
     "regional": 1,
 }
 neurons_dict = {
-    2: 0,
-    3: 1,
-    4: 2,
-    # 5: 3,
-    6: 3
+    4: 0,
+    5: 1,
+    6: 2,
+    7: 3,
+    # 6: 3
 }
 
 def heatmap(axis: Axes, data: List[Datum], fitness_range: List[float], pos: List[int]):
@@ -53,7 +53,7 @@ def heatmap(axis: Axes, data: List[Datum], fitness_range: List[float], pos: List
     axis.xaxis.set_major_locator(plt.MultipleLocator(pi / 2))
     axis.xaxis.set_minor_locator(plt.MultipleLocator(pi / 12))
     axis.xaxis.set_major_formatter(plt.FuncFormatter(multiple_formatter()))
-    axis.set_ylabel([2, 3, 4, 6][pos[1]])
+    axis.set_ylabel([4, 5, 6, 7][pos[1]])
     axis.set_xlabel("cyclical" if not pos[0] else "regional")
 
 fitness_range = [0.0, 0.0]

@@ -12,7 +12,7 @@ def get_data() -> Dict[str, Dict[int, List[Datum]]]:
 
     for file in files:
         path = join("data", file)
-        match = re.match("mapping-([a-z]+)_neurons-([\\d\\.]+)\\.csv", file)
+        match = re.match("mapping-([a-z]+)_.*-([\\d\\.]+)\\.csv", file)
         if not match:
             exit()
         mapping = match.groups()[0]

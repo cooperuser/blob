@@ -1,25 +1,17 @@
 import subprocess
 import csv
-from math import floor, pi
+from math import pi
+from tqdm.contrib import itertools
 
 BIN = "./target/x86_64-pc-windows-msvc/release/blob.exe"
 
-def sweep(path, neurons):
+def sweep(path, segments):
     data = []
-    frequency = 0.01
-    index = 0
-    while frequency <= 1.0:
-        phase = pi / 12
-        while phase <= pi:
-            x = subprocess.check_output([BIN, str(frequency), str(phase), str(neurons), "--nogui"])
-            fitness = float(x)
-            datum = {"frequency": frequency, "phase": phase, "fitness": fitness}
-            data.append(datum)
-            percent = index / (100 * 12)
-            print(floor(percent * 10000) / 100, ":", neurons, frequency, phase, fitness)
-            phase += pi / 12
-            index += 1
-        frequency += 0.01
+    for frequency, phase in itertools.product([(f + 1) / 100 for f in range(100)], [(p + 1) * pi / 12 for p in range(12)]):
+        x = subprocess.check_output([BIN, str(frequency), str(phase), "4", str(segments), "--nogui"])
+        fitness = float(x)
+        datum = {"frequency": frequency, "phase": phase, "fitness": fitness}
+        data.append(datum)
 
     with open(path, "w", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=["frequency", "phase", "fitness"])
@@ -28,5 +20,5 @@ def sweep(path, neurons):
 
 
 if __name__ == "__main__":
-    for n in range(2, 5):
-        sweep("./data/mapping-regional_neurons-" + str(n) + ".csv", n)
+    for s in range(6, 8):
+        sweep("./data/mapping-regional_segments-" + str(s) + ".csv", s)
